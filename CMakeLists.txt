@@ -3,7 +3,7 @@
 cmake_minimum_required(VERSION 3.13)
 
 set(CMAKE_C_STANDARD 11)
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # ============================================================
@@ -28,6 +28,8 @@ endif()
 
 # Pico 2 W
 set(PICO_BOARD pico2_w CACHE STRING "Board type")
+
+set(PICO_SDK_FETCH_FROM_GIT 1)
 
 # ============================================================
 # Pico SDK
