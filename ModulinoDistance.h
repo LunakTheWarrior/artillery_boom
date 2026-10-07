@@ -28,6 +28,10 @@ public:
     selectRegister(const T);
 
 
+    template <class T>
+    T readRegister(const std::uint16_t reg);
+
+
 private:
     static constexpr std::uint32_t baudraute_{100'000};
     static constexpr std::uint16_t modelIdRegister_       = 0x010F;
@@ -60,4 +64,25 @@ inline void ModulinoDistance::selectRegister(const T reg)
     {
         printf("Failed to select register: %d\n", reg);
     }
+}
+
+template <class T>
+inline T ModulinoDistance::readRegister(const std::uint16_t reg)
+{
+    selectRegister(reg);
+
+    T result;
+    if (const auto bytesRead = i2c_read_blocking(
+        i2c_,
+        i2cAddress_,
+        reinterpret_cast<std::uint8_t*>(&result),
+        sizeof(T),
+        true
+    ); bytesRead != sizeof(T))
+    {
+        printf("Failed to read register %d", reg);
+        return {};
+    }
+
+    return std::byteswap(result);
 }
