@@ -1,32 +1,68 @@
 name: C/C++ CI
 
-'on': push: branches: - main pull_request: branches: - main
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
 
-permissions: contents: read
+permissions:
+  contents: read
 
-jobs: build: runs-on: ubuntu-latest
+jobs:
+  build:
+    runs-on: ubuntu-latest
 
-steps: - name: Checkout repository uses: actions/checkout@v4
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-- name: Install build utilities run: | sudo apt-get update sudo apt-get install -y cmake ninja-build git python3 curl xz-utils
+      - name: Install build utilities
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build git python3 curl xz-utils
 
-- name: Install Arm GNU Toolchain shell: bash run: | set -euo pipefail
+      - name: Install Arm GNU Toolchain 15.2.Rel1
+        shell: bash
+        run: |
+          set -euo pipefail
 
-VERSION="15.2.rel1" ARCHIVE="arm-gnu-toolchain-VERSION−x8664−arm−none−eabi.tar.xz"URL="https://developer.arm.com/−/media/Files/downloads/gnu/{VERSION}/binrel/ARCHIVE"DEST="{RUNNER_TEMP}/arm-toolchain"
+          VERSION="15.2.rel1"
+          ARCHIVE="arm-gnu-toolchain-${VERSION}-x86_64-arm-none-eabi.tar.xz"
+          URL="https://developer.arm.com/-/media/Files/downloads/gnu/${VERSION}/binrel/${ARCHIVE}"
+          DEST="${RUNNER_TEMP}/toolchain"
 
-mkdir -p "DEST"curl−fL−−retry3"URL" -o "RUNNERTEMP/{ARCHIVE}" tar -xJf "RUNNERTEMP/{ARCHIVE}" -C "$DEST"
+          curl -fL --retry 3 "$URL" -o "${RUNNER_TEMP}/${ARCHIVE}"
+          mkdir -p "$DEST"
+          tar -xJf "${RUNNER_TEMP}/${ARCHIVE}" -C "$DEST"
 
-TOOLCHAINDIR="(find"DEST" -mindepth 1 -maxdepth 1 -type d -name 'arm-gnu-toolchain-' -print -quit)" test -n "TOOLCHAINDIR"test−x"TOOLCHAIN_DIR/bin/arm-none-eabi-gcc"
+          TOOLCHAIN_DIR="$(find "$DEST" -mindepth 1 -maxdepth 1 -type d -name 'arm-gnu-toolchain-*' -print -quit)"
 
-echo "PICOTOOLCHAINPATH=TOOLCHAINDIR">>"GITHUBENV" echo "TOOLCHAINDIR/bin">>"GITHUBPATH"
+          test -x "$TOOLCHAIN_DIR/bin/arm-none-eabi-gcc"
 
-"$TOOLCHAIN_DIR/bin/arm-none-eabi-gcc" --version
+          echo "PICO_TOOLCHAIN_PATH=$TOOLCHAIN_DIR" >> "$GITHUB_ENV"
+          echo "$TOOLCHAIN_DIR/bin" >> "$GITHUB_PATH"
 
-- name: Configure CMake run: | cmake -S . -B build -G Ninja
--DPICOSDKFETCHFROMGIT=ON
--DPICOSDKFETCHFROMGITTAG=2.3.1
--DPICOBOARD=pico2_w
+          "$TOOLCHAIN_DIR/bin/arm-none-eabi-gcc" --version
 
-- name: Build firmware run: cmake --build build --parallel 2
+      - name: Configure CMake
+        run: |
+          cmake -S . -B build -G Ninja \
+            -DPICO_SDK_FETCH_FROM_GIT=ON \
+            -DPICO_SDK_FETCH_FROM_GIT_TAG=2.3.1 \
+            -DPICO_BOARD=pico2_w
 
-- name: Upload firmware uses: actions/upload-artifact@v4 with: name: pico2-w-firmware path: | build/lightturret.uf2 build/lightturret.elf build/light_turret.bin if-no-files-found: warn
+      - name: Build firmware
+        run: cmake --build build --parallel 2
+
+      - name: Upload firmware artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: pico2-w-firmware
+          path: |
+            build/light_turret.uf2
+            build/light_turret.elf
+            build/light_turret.bin
+          if-no-files-found: warn
