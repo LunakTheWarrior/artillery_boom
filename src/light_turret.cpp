@@ -21,7 +21,7 @@ int main()
     PersonSearcher searcher;
 
     const auto modelIdForDistanceThing = distance.readModelId();
-    printf("The modelid i read was: %d\n", modelIdForDistanceThing);
+    printf("The modeasdasdasdlid i read was: %d\n", modelIdForDistanceThing);
     const std::uint16_t modelType = distance.readRegister<std::uint16_t>(std::uint16_t(0x010F));
     printf("Modeltype: %d\n", modelType);
 

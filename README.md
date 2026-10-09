@@ -60,8 +60,8 @@ The Docker build also requires a Linux x86_64 host (or suitable emulation).
 
 ## Build integration
 
-`BUILD.bazel` defines the firmware, optional light driver, binary metadata, and
-image conversion. `.bazelrc` selects the Pico 2 W / RP2350 and serial settings.
+Firmware sources and headers live in `src/`. `BUILD.bazel` defines the firmware,
+optional light driver, binary metadata, and image conversion. `.bazelrc` selects the Pico 2 W / RP2350 and serial settings.
 GitHub Actions builds all targets with the committed lockfile and uploads the
 three firmware images.
 

@@ -14,14 +14,14 @@ custom_pico_binary_info(
 cc_binary(
     name = "light_turret.elf",
     srcs = [
-        "ModulinoDistance.cpp",
-        "ModulinoDistance.h",
-        "SongPlayer.h",
-        "light_turret.cpp",
-        "music.h",
-        "pitches.h",
-        "searcher.h",
-        "stepper_motor.h",
+        "src/ModulinoDistance.cpp",
+        "src/ModulinoDistance.h",
+        "src/SongPlayer.h",
+        "src/light_turret.cpp",
+        "src/music.h",
+        "src/pitches.h",
+        "src/searcher.h",
+        "src/stepper_motor.h",
     ],
     deps = [
         "@pico-sdk//src/rp2_common/hardware_gpio",
@@ -34,8 +34,8 @@ cc_binary(
 # Keep the unused light sensor driver buildable without linking it into firmware.
 cc_library(
     name = "modulino_light",
-    srcs = ["ModulinoLight.cpp"],
-    hdrs = ["ModulinoLight.h"],
+    srcs = ["src/ModulinoLight.cpp"],
+    hdrs = ["src/ModulinoLight.h"],
     deps = [
         "@pico-sdk//src/rp2_common/hardware_gpio",
         "@pico-sdk//src/rp2_common/hardware_i2c",
