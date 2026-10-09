@@ -1,6 +1,6 @@
 name: C/C++ CI
 
-on: push: branches: ["main"] pull_request: branches: ["main"]
+'on': push: branches: - main pull_request: branches: - main
 
 permissions: contents: read
 
@@ -8,28 +8,19 @@ jobs: build: runs-on: ubuntu-latest
 
 steps: - name: Checkout repository uses: actions/checkout@v4
 
-- name: Install build utilities run: | sudo apt-get update sudo apt-get install -y
-cmake
-ninja-build
-git
-python3
-curl
-xz-utils
+- name: Install build utilities run: | sudo apt-get update sudo apt-get install -y cmake ninja-build git python3 curl xz-utils
 
-- name: Install Arm GNU Toolchain 15.2.Rel1 shell: bash run: | set -euo pipefail
+- name: Install Arm GNU Toolchain shell: bash run: | set -euo pipefail
 
-TOOLCHAINVERSION="15.2.rel1" TOOLCHAINARCHIVE="arm-gnu-toolchain-TOOLCHAINVERSION−x8664−arm−none−eabi.tar.xz"TOOLCHAINURL="https://developer.arm.com/−/media/Files/downloads/gnu/{TOOLCHAINVERSION}/binrel/TOOLCHAINARCHIVE"TOOLCHAINDIR="{RUNNERTEMP}/arm-gnu-toolchain-${TOOLCHAINVERSION}-x8664-arm-none-eabi"
+VERSION="15.2.rel1" ARCHIVE="arm-gnu-toolchain-VERSION−x8664−arm−none−eabi.tar.xz"URL="https://developer.arm.com/−/media/Files/downloads/gnu/{VERSION}/binrel/ARCHIVE"DEST="{RUNNER_TEMP}/arm-toolchain"
 
-curl --fail --location --retry 3
-"${TOOLCHAINURL}"
---output "RUNNERTEMP/{TOOLCHAINARCHIVE}"
+mkdir -p "DEST"curl−fL−−retry3"URL" -o "RUNNERTEMP/{ARCHIVE}" tar -xJf "RUNNERTEMP/{ARCHIVE}" -C "$DEST"
 
-tar -xJf "RUNNERTEMP/{TOOLCHAINARCHIVE}"
--C "${RUNNERTEMP}"
+TOOLCHAINDIR="(find"DEST" -mindepth 1 -maxdepth 1 -type d -name 'arm-gnu-toolchain-' -print -quit)" test -n "TOOLCHAINDIR"test−x"TOOLCHAIN_DIR/bin/arm-none-eabi-gcc"
 
-echo "PICOTOOLCHAINPATH=TOOLCHAINDIR">>"{GITHUBENV}" echo "TOOLCHAINDIR/bin">>"{GITHUBPATH}"
+echo "PICOTOOLCHAINPATH=TOOLCHAINDIR">>"GITHUBENV" echo "TOOLCHAINDIR/bin">>"GITHUBPATH"
 
-"TOOLCHAINDIR/bin/arm−none−eabi−gcc"−−version"{TOOLCHAIN_DIR}/bin/arm-none-eabi-g++" --version
+"$TOOLCHAIN_DIR/bin/arm-none-eabi-gcc" --version
 
 - name: Configure CMake run: | cmake -S . -B build -G Ninja
 -DPICOSDKFETCHFROMGIT=ON
@@ -38,4 +29,4 @@ echo "PICOTOOLCHAINPATH=TOOLCHAINDIR">>"{GITHUBENV}" echo "TOOLCHAINDIR/bin">>"{
 
 - name: Build firmware run: cmake --build build --parallel 2
 
-- name: Upload firmware artifacts uses: actions/upload-artifact@v4 with: name: pico2-w-firmware path: | build/lightturret.uf2 build/lightturret.elf build/light_turret.bin if-no-files-found: warn
+- name: Upload firmware uses: actions/upload-artifact@v4 with: name: pico2-w-firmware path: | build/lightturret.uf2 build/lightturret.elf build/light_turret.bin if-no-files-found: warn
