@@ -1,0 +1,25 @@
+module(
+    name = "artillery_boom",
+    version = "0.1.0",
+)
+
+bazel_dep(name = "pico-sdk", version = "2.3.1")
+bazel_dep(name = "rules_cc", version = "0.1.1")
+bazel_dep(name = "picotool", version = "2.3.0")
+
+# SDK 2.3.1 is not yet in the Bazel Central Registry. Pin the release archive.
+# The patch selects the same Linux x86_64 compiler as the previous CI build.
+archive_override(
+    module_name = "pico-sdk",
+    integrity = "sha256-ONMVtwkZhRNHIc07tqllbw74Ri7I3Hti1Yhrx6nSdaI=",
+    patch_strip = 1,
+    patches = [
+        "//bazel:arm_toolchain.patch",
+        # USB stdio needs the device stack, not TinyUSB's example board setup.
+        "//bazel:tinyusb_device_only.patch",
+    ],
+    strip_prefix = "pico-sdk-2.3.1",
+    urls = ["https://github.com/raspberrypi/pico-sdk/archive/refs/tags/2.3.1.tar.gz"],
+)
+
+register_toolchains("@pico-sdk//bazel/toolchain:linux-x86_64-rp2350")

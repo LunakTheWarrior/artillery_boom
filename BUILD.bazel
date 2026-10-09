@@ -1,0 +1,67 @@
+load("@pico-sdk//bazel/toolchain:objcopy.bzl", "objcopy_to_bin")
+load("@pico-sdk//src/common/pico_binary_info:binary_info.bzl", "custom_pico_binary_info")
+load("@rules_cc//cc:cc_binary.bzl", "cc_binary")
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
+
+package(default_visibility = ["//visibility:public"])
+
+custom_pico_binary_info(
+    name = "binary_info",
+    program_name = "light_turret",
+    program_version_string = "0.1",
+)
+
+cc_binary(
+    name = "light_turret.elf",
+    srcs = [
+        "ModulinoDistance.cpp",
+        "ModulinoDistance.h",
+        "SongPlayer.h",
+        "light_turret.cpp",
+        "music.h",
+        "pitches.h",
+        "searcher.h",
+        "stepper_motor.h",
+    ],
+    deps = [
+        "@pico-sdk//src/rp2_common/hardware_gpio",
+        "@pico-sdk//src/rp2_common/hardware_i2c",
+        "@pico-sdk//src/rp2_common/hardware_pwm",
+        "@pico-sdk//src/rp2_common/pico_stdlib",
+    ],
+)
+
+# Keep the unused light sensor driver buildable without linking it into firmware.
+cc_library(
+    name = "modulino_light",
+    srcs = ["ModulinoLight.cpp"],
+    hdrs = ["ModulinoLight.h"],
+    deps = [
+        "@pico-sdk//src/rp2_common/hardware_gpio",
+        "@pico-sdk//src/rp2_common/hardware_i2c",
+        "@pico-sdk//src/rp2_common/pico_stdlib",
+    ],
+)
+
+objcopy_to_bin(
+    name = "firmware_bin",
+    src = ":light_turret.elf",
+    out = "light_turret.bin",
+)
+
+genrule(
+    name = "firmware_uf2",
+    srcs = [":light_turret.elf"],
+    outs = ["light_turret.uf2"],
+    cmd = "$(location @picotool//:picotool) uf2 convert --quiet -t elf $(location :light_turret.elf) $@",
+    tools = ["@picotool"],
+)
+
+filegroup(
+    name = "light_turret",
+    srcs = [
+        ":firmware_bin",
+        ":firmware_uf2",
+        ":light_turret.elf",
+    ],
+)
