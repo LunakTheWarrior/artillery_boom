@@ -17,6 +17,6 @@ RUN useradd --create-home builder && \
 COPY --chown=builder:builder . /turret
 USER builder
 RUN bazel --batch build //... --lockfile_mode=error --jobs=2 && \
-    cp bazel-bin/light_turret.elf bazel-bin/light_turret.bin bazel-bin/light_turret.uf2 /firmware/
+    cp bazel-bin/light_turret.elf bazel-bin/light_turret.bin bazel-bin/light_turret.uf2 bazel-bin/THIRD_PARTY_NOTICES.txt /firmware/
 
 CMD ["bash"]

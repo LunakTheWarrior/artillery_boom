@@ -28,6 +28,9 @@ jobs:
           disk-cache: ${{ github.workflow }}
           repository-cache: true
 
+      - name: Test distance driver on the host
+        run: bazel test //tests:modulino_distance_test --platforms=@platforms//host --lockfile_mode=error --test_output=errors
+
       # Bazel downloads the checksum-pinned Arm GNU Toolchain 15.2.Rel1.
       - name: Build firmware and drivers
         run: bazel build //... --lockfile_mode=error
@@ -40,4 +43,5 @@ jobs:
             bazel-bin/light_turret.uf2
             bazel-bin/light_turret.elf
             bazel-bin/light_turret.bin
+            bazel-bin/THIRD_PARTY_NOTICES.txt
           if-no-files-found: error

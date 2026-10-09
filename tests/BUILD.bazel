@@ -1,0 +1,23 @@
+load("@rules_cc//cc:cc_test.bzl", "cc_test")
+
+cc_test(
+    name = "modulino_distance_test",
+    size = "small",
+    srcs = [
+        "modulino_distance_test.cpp",
+        "stubs/hardware/gpio.h",
+        "stubs/hardware/i2c.h",
+        "stubs/pico/stdlib.h",
+        "//:distance_driver_sources",
+    ],
+    copts = [
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+    ],
+    includes = ["stubs"],
+    target_compatible_with = [
+        "@platforms//os:linux",
+        "@platforms//cpu:x86_64",
+    ],
+)

@@ -17,6 +17,7 @@ cc_binary(
         "src/ModulinoDistance.cpp",
         "src/ModulinoDistance.h",
         "src/SongPlayer.h",
+        "src/VL53L4CDRegisters.h",
         "src/light_turret.cpp",
         "src/music.h",
         "src/pitches.h",
@@ -63,5 +64,24 @@ filegroup(
         ":firmware_bin",
         ":firmware_uf2",
         ":light_turret.elf",
+        ":third_party_notices",
     ],
+)
+
+# Compile the production driver against a simulated Pico/I2C interface in host tests.
+filegroup(
+    name = "distance_driver_sources",
+    srcs = [
+        "src/ModulinoDistance.cpp",
+        "src/ModulinoDistance.h",
+        "src/VL53L4CDRegisters.h",
+    ],
+)
+
+# Include ST's notice with distributable firmware images.
+genrule(
+    name = "third_party_notices",
+    srcs = ["licenses/STMicroelectronics-BSD-3-Clause.txt"],
+    outs = ["THIRD_PARTY_NOTICES.txt"],
+    cmd = "cp $(SRCS) $@",
 )

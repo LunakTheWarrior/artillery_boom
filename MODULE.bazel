@@ -6,6 +6,7 @@ module(
 bazel_dep(name = "pico-sdk", version = "2.3.1")
 bazel_dep(name = "rules_cc", version = "0.1.1")
 bazel_dep(name = "picotool", version = "2.3.0")
+bazel_dep(name = "platforms", version = "0.0.11")
 
 # SDK 2.3.1 is not yet in the Bazel Central Registry. Pin the release archive.
 # The patch selects the same Linux x86_64 compiler as the previous CI build.
