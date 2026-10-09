@@ -1,20 +1,41 @@
 name: C/C++ CI
 
-on:
-  push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+on: push: branches: ["main"] pull_request: branches: ["main"]
 
-jobs:
-  build:
+permissions: contents: read
 
-    runs-on: ubuntu-latest
+jobs: build: runs-on: ubuntu-latest
 
-    steps:
-    - uses: actions/checkout@v4
-    - name: configure
-      run: cmake -B build
-    - name: build
-      run: cmake --build build/
+steps: - name: Checkout repository uses: actions/checkout@v4
 
+- name: Install build utilities run: | sudo apt-get update sudo apt-get install -y
+cmake
+ninja-build
+git
+python3
+curl
+xz-utils
+
+- name: Install Arm GNU Toolchain 15.2.Rel1 shell: bash run: | set -euo pipefail
+
+TOOLCHAINVERSION="15.2.rel1" TOOLCHAINARCHIVE="arm-gnu-toolchain-TOOLCHAINVERSION−x8664−arm−none−eabi.tar.xz"TOOLCHAINURL="https://developer.arm.com/−/media/Files/downloads/gnu/{TOOLCHAINVERSION}/binrel/TOOLCHAINARCHIVE"TOOLCHAINDIR="{RUNNERTEMP}/arm-gnu-toolchain-${TOOLCHAINVERSION}-x8664-arm-none-eabi"
+
+curl --fail --location --retry 3
+"${TOOLCHAINURL}"
+--output "RUNNERTEMP/{TOOLCHAINARCHIVE}"
+
+tar -xJf "RUNNERTEMP/{TOOLCHAINARCHIVE}"
+-C "${RUNNERTEMP}"
+
+echo "PICOTOOLCHAINPATH=TOOLCHAINDIR">>"{GITHUBENV}" echo "TOOLCHAINDIR/bin">>"{GITHUBPATH}"
+
+"TOOLCHAINDIR/bin/arm−none−eabi−gcc"−−version"{TOOLCHAIN_DIR}/bin/arm-none-eabi-g++" --version
+
+- name: Configure CMake run: | cmake -S . -B build -G Ninja
+-DPICOSDKFETCHFROMGIT=ON
+-DPICOSDKFETCHFROMGITTAG=2.3.1
+-DPICOBOARD=pico2_w
+
+- name: Build firmware run: cmake --build build --parallel 2
+
+- name: Upload firmware artifacts uses: actions/upload-artifact@v4 with: name: pico2-w-firmware path: | build/lightturret.uf2 build/lightturret.elf build/light_turret.bin if-no-files-found: warn
