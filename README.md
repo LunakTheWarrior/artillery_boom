@@ -65,16 +65,30 @@ optional light driver, binary metadata, and image conversion. `.bazelrc` selects
 GitHub Actions builds all targets with the committed lockfile and uploads the
 three firmware images.
 
-Two small patches adapt the SDK's native Bazel build:
+Three small patches adapt the SDK's native Bazel build:
 
 - `bazel/arm_toolchain.patch` upgrades its Linux x86_64 compiler from 13.2.Rel1
   to the same 15.2.Rel1 archive used by the previous GitHub workflow.
 - `bazel/tinyusb_device_only.patch` excludes TinyUSB's example board setup from
   the device library. Pico USB stdio initializes the device stack itself; the
   example setup unnecessarily calls UART stdio even when UART is disabled.
+- `bazel/usb_reset_alwayslink.patch` retains the USB reset interface driver and
+  BOS descriptor callbacks, which TinyUSB references weakly. Without this,
+  Linux reports `can't set config #1, error -32` and creates no serial device.
 
 When changing SDK/compiler versions, review these patches, update archive
 checksums, run `bazelisk build //...`, and commit the updated module lockfile.
+
+Two additional dependency patches keep the host build warning-free:
+
+- `bazel/picotool_warnings.patch` fixes initialization order, integer comparisons,
+  unused helpers, and an uninitialized flag in picotool 2.3.0.
+- `bazel/rules_cc_deprecations.patch` removes deprecation markers from the six
+  legacy feature placeholders that rules_cc 0.1.1 still requires internally to
+  define their replacements. It does not change toolchain behavior.
+
+Review these patches when upgrading picotool or rules_cc. Compiler warning
+flags remain enabled.
 
 ## Distance sensor
 

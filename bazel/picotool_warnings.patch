@@ -1,0 +1,412 @@
+diff --git a/model/model.h b/model/model.h
+--- a/model/model.h
++++ b/model/model.h
+@@ -73,8 +73,8 @@
+ // looking at the bootrom), however "stock" versions can be created from family IDs for example
+ class model_info {
+ public:
+-    model_info(chip_t chip, std::string name, uint32_t rom_end, std::set<picoboot_cmd_id> picoboot_cmds = {}) : _chip(chip), _name(std::move(name)),
+-        _rom_end(rom_end), _picoboot_cmds(std::move(picoboot_cmds)) {}
++    model_info(chip_t chip, std::string name, uint32_t rom_end, std::set<picoboot_cmd_id> picoboot_cmds = {}) : _name(std::move(name)),
++        _rom_end(rom_end), _picoboot_cmds(std::move(picoboot_cmds)), _chip(chip) {}
+     chip_t chip() const { return _chip; }
+     chip_revision_t chip_revision() const { return _chip_revision; }
+     void set_chip_revision(chip_revision_t revision) { _chip_revision = revision; }
+@@ -373,7 +373,7 @@
+     return model->get_memory_type(addr);
+ }
+ 
+-static model_t model_from_family(uint32_t family_id) {
++static inline model_t model_from_family(uint32_t family_id) {
+     if (family_id == RP2040_FAMILY_ID) {
+         return std::make_shared<model_rp2040>();
+     } else if (family_id >= RP2350_ARM_S_FAMILY_ID && family_id <= RP2350_ARM_NS_FAMILY_ID) {
+@@ -395,7 +395,7 @@
+ // };
+ 
+ 
+-static address_ranges address_ranges_flash(const model_t& model) {
++static inline address_ranges address_ranges_flash(const model_t& model) {
+     address_ranges ranges;
+     ranges.emplace_back(model->flash_start(), model->flash_end(), address_range::type::CONTENTS);
+     ranges.emplace_back(model->sram_start(), model->sram_end(), address_range::type::NO_CONTENTS);
+@@ -420,7 +420,7 @@
+ //     address_range(ROM_START, ROM_END_RP2350, address_range::type::IGNORE) // for now we ignore the bootrom if present
+ // };
+ 
+-static address_ranges address_ranges_ram(const model_t& model) {
++static inline address_ranges address_ranges_ram(const model_t& model) {
+     address_ranges ranges;
+     ranges.emplace_back(model->sram_start(), model->sram_end(), address_range::type::CONTENTS);
+     ranges.emplace_back(model->xip_sram_start(), model->xip_sram_end(), address_range::type::CONTENTS);
+@@ -428,7 +428,7 @@
+     return ranges;
+ }
+ 
+-static bool contains_unreadable_rom(uint32_t addr, uint32_t size, const model_t& model) {
++static inline bool contains_unreadable_rom(uint32_t addr, uint32_t size, const model_t& model) {
+     return (addr >= model->unreadable_rom_start() && addr < model->unreadable_rom_end()) ||
+             (addr + size > model->unreadable_rom_start() && addr + size <= model->unreadable_rom_end()) ||
+             (addr < model->unreadable_rom_start() && addr + size > model->unreadable_rom_end());
+diff --git a/model/addresses.h b/model/addresses.h
+--- a/model/addresses.h
++++ b/model/addresses.h
+@@ -48,7 +48,7 @@
+ 
+ typedef std::vector<address_range> address_ranges;
+ 
+-static bool is_address_valid(const address_ranges& valid_ranges, uint32_t addr) {
++static inline bool is_address_valid(const address_ranges& valid_ranges, uint32_t addr) {
+     for(const auto& range : valid_ranges) {
+         if (range.from <= addr && range.to > addr) {
+             return true;
+@@ -57,7 +57,7 @@
+     return false;
+ }
+ 
+-static bool is_address_initialized(const address_ranges& valid_ranges, uint32_t addr) {
++static inline bool is_address_initialized(const address_ranges& valid_ranges, uint32_t addr) {
+     for(const auto& range : valid_ranges) {
+         if (range.from <= addr && range.to > addr) {
+             return address_range::type::CONTENTS == range.type;
+diff --git a/lib/littlefs/lfs.c b/lib/littlefs/lfs.c
+--- a/lib/littlefs/lfs.c
++++ b/lib/littlefs/lfs.c
+@@ -504,7 +504,7 @@
+ #endif
+ 
+ #ifndef LFS_NO_ASSERT
+-static bool lfs_mlist_isopen(struct lfs_mlist *head,
++static inline bool lfs_mlist_isopen(struct lfs_mlist *head,
+         struct lfs_mlist *node) {
+     for (struct lfs_mlist **p = &head; *p; p = &(*p)->next) {
+         if (*p == (struct lfs_mlist*)node) {
+diff --git a/bintool/bintool.cpp b/bintool/bintool.cpp
+--- a/bintool/bintool.cpp
++++ b/bintool/bintool.cpp
+@@ -710,7 +710,7 @@
+     load_map->entries.erase(
+         std::remove_if(load_map->entries.begin(), load_map->entries.end(), 
+             [&model](const load_map_item::entry& entry) {
+-                bool ignored;
++                bool ignored = false;
+                 return !detect_generic_load_map_entry(entry, model, ignored);
+             }
+         ), load_map->entries.end()
+@@ -1041,7 +1041,7 @@
+ 
+     // Salt IV
+     assert(iv_data.size() == iv_salt.size());
+-    for (int i=0; i < iv_data.size(); i++) {
++    for (size_t i=0; i < iv_data.size(); i++) {
+         iv_data[i] ^= iv_salt[i];
+     }
+ 
+@@ -1145,7 +1145,7 @@
+ 
+     // Salt IV
+     assert(iv_data.size() == iv_salt.size());
+-    for (int i=0; i < iv_data.size(); i++) {
++    for (size_t i=0; i < iv_data.size(); i++) {
+         iv_data[i] ^= iv_salt[i];
+     }
+ 
+diff --git a/elf/elf_file.cpp b/elf/elf_file.cpp
+--- a/elf/elf_file.cpp
++++ b/elf/elf_file.cpp
+@@ -256,11 +256,11 @@
+ // but this is not necessary for signing/hashing
+ void elf_file::remove_ph_holes(void) {
+     auto sorted_ph_entries = sorted_segments();
+-    for (int i=0; i+1 < ph_entries.size(); i++) {
++    for (size_t i=0; i+1 < ph_entries.size(); i++) {
+         auto ph0 = &(ph_entries[i]);
+         const elf32_ph_entry* ph1 = nullptr;
+         // ph1 is the next segment by address
+-        for (int j=0; j+1 < sorted_ph_entries.size(); j++) {
++        for (size_t j=0; j+1 < sorted_ph_entries.size(); j++) {
+             auto tst_ph0 = sorted_ph_entries[j];
+             if (tst_ph0->offset == ph0->offset) {
+                 ph1 = sorted_ph_entries[j+1];
+@@ -279,12 +279,12 @@
+         ) {
+             uint32_t gap = ph1->paddr - ph0->paddr - ph0->filez;
+             if (gap > ph1->align) {
+-                fail(ERROR_INCOMPATIBLE, "Segment %d: Cannot plug gap greater than alignment - gap %d, alignment %d", i, gap, ph1->align);
++                fail(ERROR_INCOMPATIBLE, "Segment %zu: Cannot plug gap greater than alignment - gap %d, alignment %d", i, gap, ph1->align);
+             }
+             if (ph0->offset + ph0->filez + gap > ph1file.offset) {
+-                fail(ERROR_INCOMPATIBLE, "Segment %d: Cannot plug gap without space in file - gap %d", i, gap);
++                fail(ERROR_INCOMPATIBLE, "Segment %zu: Cannot plug gap without space in file - gap %d", i, gap);
+             }
+-            if (verbose) printf("Segment %d: Moving end from 0x%08x to 0x%08x to plug gap\n", i, ph0->paddr + ph0->filez, ph1->paddr);
++            if (verbose) printf("Segment %zu: Moving end from 0x%08x to 0x%08x to plug gap\n", i, ph0->paddr + ph0->filez, ph1->paddr);
+             ph0->filez = ph1->paddr - ph0->paddr;
+             ph0->memsz = ph0->filez;
+         }
+@@ -296,7 +296,7 @@
+ // signing/hashing/encrypting data that may not be written, as many tools write in sections not segments
+ void elf_file::remove_sh_holes(void) {
+     bool found_hole = false;
+-    for (int i=0; i+1 < sh_entries.size(); i++) {
++    for (size_t i=0; i+1 < sh_entries.size(); i++) {
+         auto sh0 = &(sh_entries[i]);
+         elf32_sh_entry sh1 = sh_entries[i+1];
+         if (
+@@ -308,9 +308,9 @@
+         ) {
+             uint32_t gap = sh1.addr - sh0->addr - sh0->size;
+             if (gap > sh1.addralign) {
+-                fail(ERROR_INCOMPATIBLE, "Section %d: Cannot plug gap greater than alignment - gap %d, alignment %d", i, gap, sh1.addralign);
++                fail(ERROR_INCOMPATIBLE, "Section %zu: Cannot plug gap greater than alignment - gap %d, alignment %d", i, gap, sh1.addralign);
+             }
+-            if (verbose) printf("Section %d: Moving end from 0x%08x to 0x%08x to plug gap\n", i, sh0->addr + sh0->size, sh1.addr);
++            if (verbose) printf("Section %zu: Moving end from 0x%08x to 0x%08x to plug gap\n", i, sh0->addr + sh0->size, sh1.addr);
+             sh0->size = sh1.addr - sh0->addr;
+             found_hole = true;
+         } else if (
+@@ -320,8 +320,7 @@
+             && (sh0->offset + sh0->size < segment_from_section(*sh0)->offset + segment_from_section(*sh0)->filez)
+         ) {
+             const elf32_ph_entry *seg = segment_from_section(*sh0);
+-            uint32_t gap = seg->offset + seg->filez - sh0->offset - sh0->size;
+-            if (verbose) printf("Section %d: Moving end from 0x%08x to 0x%08x to plug gap at end of segment\n", i, sh0->addr + sh0->size, seg->offset + seg->filez);
++            if (verbose) printf("Section %zu: Moving end from 0x%08x to 0x%08x to plug gap at end of segment\n", i, sh0->addr + sh0->size, seg->offset + seg->filez);
+             sh0->size = seg->offset + seg->filez - sh0->offset;
+             found_hole = true;
+         }
+@@ -330,10 +329,12 @@
+ }
+ 
+ void elf_file::remove_empty_ph_entries(void) {
+-    for (int i = 0; i < ph_entries.size(); i++) {
++    for (size_t i = 0; i < ph_entries.size();) {
+         if (ph_entries[i].filez == 0) {
+             ph_entries.erase(ph_entries.begin() + i);
+-            eh.ph_num--; i--;
++            eh.ph_num--;
++        } else {
++            i++;
+         }
+     }
+ }
+diff --git a/main.cpp b/main.cpp
+--- a/main.cpp
++++ b/main.cpp
+@@ -253,7 +253,7 @@
+ struct cancelled_exception : std::exception { };
+ 
+ struct not_mapped_exception : std::exception {
+-    explicit not_mapped_exception(uint32_t addr) : addr(addr), std::exception() {}
++    explicit not_mapped_exception(uint32_t addr) : std::exception(), addr(addr) {}
+     const char *what() const noexcept override {
+         return "Hmm uncaught not mapped";
+     }
+@@ -1223,8 +1223,8 @@
+             ).min(0) % "Add Minor Version" +
+             (
+                 option("--rollback") &
+-                    integer("rollback").set(settings.seal.rollback_version) +
+-                    hex("rows").add_to(settings.seal.rollback_rows).min(0).repeatable()
++                    (integer("rollback").set(settings.seal.rollback_version) +
++                    hex("rows").add_to(settings.seal.rollback_rows).min(0).repeatable())
+             ).min(0) % "Add Rollback Version"
+         );
+     }
+@@ -2529,7 +2529,7 @@
+                 }
+                 // Check if we need to erase (ie check for bits that need to be set)
+                 bool do_erase = false;
+-                for (int i = 0; i < write_data.size(); i++) {
++                for (size_t i = 0; i < write_data.size(); i++) {
+                     if (buffer[i] & ~write_data[i]) {
+                         do_erase = true;
+                         break;
+@@ -5125,7 +5125,7 @@
+         if (!partitions) {
+             fail(ERROR_NOT_POSSIBLE, "There is no partition table on the device");
+         }
+-        if (settings.load.partition >= partitions->size()) {
++        if (static_cast<size_t>(settings.load.partition) >= partitions->size()) {
+             fail(ERROR_NOT_POSSIBLE, "There are only %d partitions on the device", partitions->size());
+         }
+         size_t tmp;
+@@ -5418,7 +5418,7 @@
+         if (!partitions) {
+             fail(ERROR_NOT_POSSIBLE, "There is no partition table on the device");
+         }
+-        if (settings.load.partition >= partitions->size()) {
++        if (static_cast<size_t>(settings.load.partition) >= partitions->size()) {
+             fail(ERROR_NOT_POSSIBLE, "There are only %d partitions on the device", partitions->size());
+         }
+         uint32_t start = (*partitions)[settings.load.partition].start;
+@@ -5793,7 +5793,7 @@
+     }
+ 
+     // Key is stored as a 4-way share of each word, ie X[0] = A[0] ^ B[0] ^ C[0] ^ D[0], stored as A[0], B[0], C[0], D[0]
+-    for (int i=0; i < count_of(aes_key.words); i++) {
++    for (size_t i=0; i < count_of(aes_key.words); i++) {
+         aes_key.words[i] = aes_key_share.words[i*4]
+                          ^ aes_key_share.words[i*4 + 1]
+                          ^ aes_key_share.words[i*4 + 2]
+@@ -5852,7 +5852,7 @@
+ 
+             // Salt IV
+             assert(iv_data.size() == iv_salt.size());
+-            for (int i=0; i < iv_data.size(); i++) {
++            for (size_t i=0; i < iv_data.size(); i++) {
+                 iv_data[i] ^= iv_salt[i];
+             }
+             auto tmp = std::make_shared<std::stringstream>();
+@@ -6017,30 +6017,30 @@
+         memcpy(page2_data.data(), iv_salt.data(), iv_salt.size());
+ 
+         // The bits in rows 32-63 must be the inverse of the bits in rows 0-31
+-        for (int i = 0; i < page0_data.size(); i += 2) {
++        for (size_t i = 0; i < page0_data.size(); i += 2) {
+             page0_inverse[i*2] = ~page0_data[i];
+             page0_inverse[i*2+1] = ~page0_data[i+1];
+             page0_inverse[i*2+2] = ~otp_calculate_ecc(*(uint16_t*)&page0_data[i]) >> 16;
+         }
+-        for (int i = 0; i < page1_data.size(); i += 2) {
++        for (size_t i = 0; i < page1_data.size(); i += 2) {
+             page1_inverse[i*2] = ~page1_data[i];
+             page1_inverse[i*2+1] = ~page1_data[i+1];
+             page1_inverse[i*2+2] = ~otp_calculate_ecc(*(uint16_t*)&page1_data[i]) >> 16;
+         }
+-        for (int i = 0; i < page2_data.size(); i += 2) {
++        for (size_t i = 0; i < page2_data.size(); i += 2) {
+             page2_inverse[i*2] = ~page2_data[i];
+             page2_inverse[i*2+1] = ~page2_data[i+1];
+             page2_inverse[i*2+2] = ~otp_calculate_ecc(*(uint16_t*)&page2_data[i]) >> 16;
+         }
+ 
+         // Add otp AES key pages
+-        for (int i = 0; i < page0_data.size(); i++) {
++        for (size_t i = 0; i < page0_data.size(); i++) {
+             std::stringstream ss;
+             ss << settings.encrypt.otp_key_page << ":0";
+             otp_json[ss.str()]["ecc"] = true;
+             otp_json[ss.str()]["value"][i] = page0_data[i];
+         }
+-        for (int i = 0; i < page1_data.size(); i++) {
++        for (size_t i = 0; i < page1_data.size(); i++) {
+             std::stringstream ss;
+             ss << settings.encrypt.otp_key_page + 1 << ":0";
+             otp_json[ss.str()]["ecc"] = true;
+@@ -6048,7 +6048,7 @@
+         }
+ 
+         // Add otp IV salt page
+-        for (int i = 0; i < page2_data.size(); i++) {
++        for (size_t i = 0; i < page2_data.size(); i++) {
+             std::stringstream ss;
+             ss << settings.encrypt.otp_key_page + 2 << ":0";
+             otp_json[ss.str()]["ecc"] = true;
+@@ -6056,19 +6056,19 @@
+         }
+ 
+         // Add inverse pages
+-        for (int i = 0; i < page0_inverse.size(); i++) {
++        for (size_t i = 0; i < page0_inverse.size(); i++) {
+             std::stringstream ss;
+             ss << settings.encrypt.otp_key_page << ":32";
+             otp_json[ss.str()]["ecc"] = false;
+             otp_json[ss.str()]["value"][i] = page0_inverse[i];
+         }
+-        for (int i = 0; i < page1_inverse.size(); i++) {
++        for (size_t i = 0; i < page1_inverse.size(); i++) {
+             std::stringstream ss;
+             ss << settings.encrypt.otp_key_page + 1 << ":32";
+             otp_json[ss.str()]["ecc"] = false;
+             otp_json[ss.str()]["value"][i] = page1_inverse[i];
+         }
+-        for (int i = 0; i < page2_inverse.size(); i++) {
++        for (size_t i = 0; i < page2_inverse.size(); i++) {
+             std::stringstream ss;
+             ss << settings.encrypt.otp_key_page + 2 << ":32";
+             otp_json[ss.str()]["ecc"] = false;
+@@ -6402,7 +6402,7 @@
+             if (!partitions) {
+                 fail(ERROR_NOT_POSSIBLE, "There is no partition table on the device");
+             }
+-            if (settings.bdev.partition_number >= partitions->size()) {
++            if (static_cast<size_t>(settings.bdev.partition_number) >= partitions->size()) {
+                 fail(ERROR_NOT_POSSIBLE, "There are only %d partitions on the device", partitions->size());
+             }
+             chosen_partition = (*partitions)[settings.bdev.partition_number];
+@@ -7038,7 +7038,7 @@
+                     err = lfs_file_read(lfs, &file, data_buf.data(), data_buf.size());
+                     if (err < 0) {
+                         fail(ERROR_READ_FAILED, "LittleFS Read Error: %s", lfs_err_str(err).c_str());
+-                    } else if (err != data_buf.size()) {
++                    } else if (static_cast<size_t>(err) != data_buf.size()) {
+                         fail(ERROR_READ_FAILED, "LittleFS Read too short - got %d bytes expected %d bytes", err, data_buf.size());
+                     }
+                     err = lfs_file_close(lfs, &file);
+@@ -7053,7 +7053,7 @@
+                     err = lfs_file_write(lfs, &file, data_buf.data(), data_buf.size());
+                     if (err < 0) {
+                         fail(ERROR_WRITE_FAILED, "LittleFS Write Error: %s", lfs_err_str(err).c_str());
+-                    } else if (err != data_buf.size()) {
++                    } else if (static_cast<size_t>(err) != data_buf.size()) {
+                         fail(ERROR_WRITE_FAILED, "LittleFS Write too short - wrote %d bytes expected %d bytes", err, data_buf.size());
+                     }
+                     err = lfs_file_close(lfs, &file);
+@@ -7188,7 +7188,7 @@
+                 err = lfs_file_read(lfs, &file, data_buf.data(), data_buf.size());
+                 if (err < 0) {
+                     fail(ERROR_READ_FAILED, "LittleFS Read Error: %s", lfs_err_str(err).c_str());
+-                } else if (err != data_buf.size()) {
++                } else if (static_cast<size_t>(err) != data_buf.size()) {
+                     fail(ERROR_READ_FAILED, "LittleFS Read too short - got %d bytes expected %d bytes", err, data_buf.size());
+                 }
+                 err = lfs_file_close(lfs, &file);
+@@ -7663,11 +7663,11 @@
+ 
+     if (partitions) {
+         printf("partitions:\n");
+-        for (int i = 0; i < (*partitions).size(); i++) {
++        for (size_t i = 0; i < (*partitions).size(); i++) {
+             auto partition = (*partitions)[i];
+             uint32_t flags_and_permissions = partition.flags_and_permissions;
+             uint64_t id = partition.id;
+-            printf("  %d", i);
++            printf("  %zu", i);
+             if ((flags_and_permissions & PICOBIN_PARTITION_FLAGS_LINK_TYPE_BITS) ==
+                 PICOBIN_PARTITION_FLAGS_LINK_TYPE_AS_BITS(A_PARTITION)) {
+                 printf("(B w/ %d) ", (flags_and_permissions & PICOBIN_PARTITION_FLAGS_LINK_VALUE_BITS)
+@@ -8118,7 +8118,7 @@
+                 continue;
+             }
+ 
+-            if (settings.uf2.partition < 0 || settings.uf2.partition >= partition_table->partitions.size()) {
++            if (settings.uf2.partition < 0 || static_cast<size_t>(settings.uf2.partition) >= partition_table->partitions.size()) {
+                 fail(ERROR_ARGS, "Partition table only contains partitions 0 -> %d\n", partition_table->partitions.size() - 1);
+             }
+ 
+diff --git a/cli.h b/cli.h
+--- a/cli.h
++++ b/cli.h
+@@ -447,7 +447,7 @@
+             } catch (std::out_of_range&) {
+                 return value + " is out of range";
+             }
+-            if (lvalue != (int64_t)lvalue) {
++            if (lvalue != static_cast<uint64_t>(static_cast<T>(lvalue))) {
+                 return value + " is too big";
+             }
+             out = (int64_t)lvalue;
+@@ -467,10 +467,10 @@
+                 std::string err = parse_string(value, tmp);
+                 t = tmp;
+                 if (!err.empty()) return err;
+-                if (t < min) {
++                if (tmp < min) {
+                     return nm + " must be >= " + std::to_string(min);
+                 }
+-                if (t > max) {
++                if (tmp > max) {
+                     return nm + " must be <= " + std::to_string(max);
+                 }
+                 if (t & invalid_bits) {

@@ -1,0 +1,9 @@
+--- a/src/rp2_common/pico_usb_reset/BUILD.bazel
++++ b/src/rp2_common/pico_usb_reset/BUILD.bazel
+@@ -27,4 +27,6 @@
+         "//src/rp2_common/hardware_watchdog",
+         "//src/rp2_common/pico_bootrom",
+     ],
++    # TinyUSB's weak callbacks do not pull usb_reset.c out of the archive.
++    alwayslink = True,
+ )

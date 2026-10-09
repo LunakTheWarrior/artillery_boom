@@ -8,6 +8,21 @@ bazel_dep(name = "rules_cc", version = "0.1.1")
 bazel_dep(name = "picotool", version = "2.3.0")
 bazel_dep(name = "platforms", version = "0.0.11")
 
+# These legacy feature placeholders are still required by rules_cc's own
+# replacement features through their `overrides` attributes.
+single_version_override(
+    module_name = "rules_cc",
+    patch_strip = 1,
+    patches = ["//bazel:rules_cc_deprecations.patch"],
+)
+
+# Fix host compiler warnings in picotool 2.3.0, including an uninitialized flag.
+single_version_override(
+    module_name = "picotool",
+    patch_strip = 1,
+    patches = ["//bazel:picotool_warnings.patch"],
+)
+
 # SDK 2.3.1 is not yet in the Bazel Central Registry. Pin the release archive.
 # The patch selects the same Linux x86_64 compiler as the previous CI build.
 archive_override(
@@ -18,6 +33,8 @@ archive_override(
         "//bazel:arm_toolchain.patch",
         # USB stdio needs the device stack, not TinyUSB's example board setup.
         "//bazel:tinyusb_device_only.patch",
+        # Retain reset-interface callbacks referenced weakly by TinyUSB.
+        "//bazel:usb_reset_alwayslink.patch",
     ],
     strip_prefix = "pico-sdk-2.3.1",
     urls = ["https://github.com/raspberrypi/pico-sdk/archive/refs/tags/2.3.1.tar.gz"],

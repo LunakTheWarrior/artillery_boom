@@ -1,4 +1,7 @@
 exports_files([
     "arm_toolchain.patch",
+    "picotool_warnings.patch",
+    "rules_cc_deprecations.patch",
     "tinyusb_device_only.patch",
+    "usb_reset_alwayslink.patch",
 ])
