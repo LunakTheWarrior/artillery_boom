@@ -5,6 +5,16 @@ load("@rules_cc//cc:cc_library.bzl", "cc_library")
 
 package(default_visibility = ["//visibility:public"])
 
+filegroup(
+    name = "stepper_sources",
+    srcs = ["src/stepper_motor.h"],
+)
+
+filegroup(
+    name = "tracker_sources",
+    srcs = ["src/distance_tracker.h"],
+)
+
 custom_pico_binary_info(
     name = "binary_info",
     program_name = "light_turret",
@@ -19,6 +29,7 @@ cc_binary(
         "src/SongPlayer.h",
         "src/VL53L4CDRegisters.h",
         "src/light_turret.cpp",
+        "src/distance_tracker.h",
         "src/music.h",
         "src/pitches.h",
         "src/searcher.h",

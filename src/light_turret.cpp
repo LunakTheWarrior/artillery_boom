@@ -1,7 +1,6 @@
 #include <cstdio>
 
 #include "pico/stdlib.h"
-#include "hardware/pwm.h"
 #include "ModulinoDistance.h"
 #include "searcher.h"
 
@@ -15,6 +14,7 @@ int main() {
     PersonSearcher searcher;
 
     while (true) {
+        searcher.reset();
         auto started = distance.begin(20ms).and_then([&] { return distance.startRanging(); });
         if (!started) {
             std::printf("Distance sensor: %s; retrying\n", ModulinoDistance::errorName(started.error()));
@@ -24,10 +24,17 @@ int main() {
         std::printf("VL53L4CD initialized; distance readings are in millimeters\n");
 
         auto sampleDeadline = make_timeout_time_ms(1000);
+        bool discardSample = true;
         while (true) {
             auto measurement = distance.readMeasurement();
             if (measurement) {
                 sampleDeadline = make_timeout_time_ms(1000);
+                // Discard the result that may have integrated during movement.
+                // The next conversion is taken with the motor stationary.
+                if (discardSample) {
+                    discardSample = false;
+                    continue;
+                }
                 if (measurement->valid()) {
                     std::printf("Distance: %u mm (sigma %.2f mm, signal %lu kcps)\n",
                                 static_cast<unsigned>(measurement->distanceMm),
@@ -38,6 +45,10 @@ int main() {
                                 static_cast<unsigned>(measurement->rangeStatus),
                                 static_cast<unsigned>(measurement->rawRangeStatus));
                 }
+                searcher.observe(measurement->valid()
+                    ? std::optional{measurement->distanceMm} : std::nullopt);
+                sleep_ms(25); // Settle and finish any in-flight 20 ms conversion.
+                discardSample = true;
             } else if (measurement.error() != ModulinoDistance::Error::NotReady) {
                 std::printf("Distance sensor: %s; restarting\n", ModulinoDistance::errorName(measurement.error()));
                 (void)distance.stopRanging();
@@ -50,8 +61,7 @@ int main() {
                 sleep_ms(1000);
                 break;
             }
-            // Existing scan logic takes an IR intensity, not a distance in mm.
-            searcher.findPerson(10);
+            sleep_ms(1);
         }
     }
 }

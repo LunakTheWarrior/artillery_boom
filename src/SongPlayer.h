@@ -1,5 +1,9 @@
+#pragma once
+
 #include <array>
+#include <cstdio>
 #include "hardware/gpio.h"
+#include "pico/stdlib.h"
 #include <cstdint>
 
 class SongPlayer
@@ -18,7 +22,7 @@ class SongPlayer
         std::uint32_t buzzerPin_;
 };
 
-SongPlayer::SongPlayer(const std::uint32_t buzzerPin)
+inline SongPlayer::SongPlayer(const std::uint32_t buzzerPin)
     : buzzerPin_(buzzerPin)
 {
     gpio_init(buzzerPin_);
@@ -26,7 +30,7 @@ SongPlayer::SongPlayer(const std::uint32_t buzzerPin)
     gpio_put(buzzerPin, 0);
 }
 
-void
+inline void
 SongPlayer::playTone(std::uint32_t frequency, std::uint32_t duration_ms)
 {
    if (frequency == 0) {
@@ -69,5 +73,5 @@ const std::array<int, SongSize>& durations)
         ++index;
     }
     printf("Done playing da music\n");
-    pwm_set_gpio_level(buzzerPin_, 0);
+    gpio_put(buzzerPin_, 0);
 }

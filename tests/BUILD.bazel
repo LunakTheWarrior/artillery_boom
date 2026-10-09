@@ -1,6 +1,23 @@
 load("@rules_cc//cc:cc_test.bzl", "cc_test")
 
 cc_test(
+    name = "stepper_motor_test",
+    size = "small",
+    srcs = [
+        "stepper_motor_test.cpp",
+        "stubs/hardware/gpio.h",
+        "stubs/pico/stdlib.h",
+        "//:stepper_sources",
+    ],
+    copts = ["-Wall", "-Wextra", "-Werror"],
+    includes = ["stubs"],
+    target_compatible_with = [
+        "@platforms//os:linux",
+        "@platforms//cpu:x86_64",
+    ],
+)
+
+cc_test(
     name = "modulino_distance_test",
     size = "small",
     srcs = [
@@ -16,6 +33,17 @@ cc_test(
         "-Werror",
     ],
     includes = ["stubs"],
+    target_compatible_with = [
+        "@platforms//os:linux",
+        "@platforms//cpu:x86_64",
+    ],
+)
+
+cc_test(
+    name = "distance_tracker_test",
+    size = "small",
+    srcs = ["distance_tracker_test.cpp", "//:tracker_sources"],
+    copts = ["-Wall", "-Wextra", "-Werror"],
     target_compatible_with = [
         "@platforms//os:linux",
         "@platforms//cpu:x86_64",

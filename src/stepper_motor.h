@@ -1,7 +1,9 @@
+#pragma once
+
 #include <cstdint>
 #include <array>
 #include "hardware/gpio.h"
-#include "time.h"
+#include "pico/stdlib.h"
 
 class StepperMotor
 {
@@ -55,28 +57,27 @@ class StepperMotor
 
 };
 
-void
+inline void
 StepperMotor::stepForward()
 {
+    position_ = (position_ + 1) % 8;
     gpio_put(pin1_, fullSteps[position_][0]);
     gpio_put(pin2_, fullSteps[position_][1]);
     gpio_put(pin3_, fullSteps[position_][2]);
     gpio_put(pin4_, fullSteps[position_][3]);
 
-    position_ = (position_ + 1) % 8;
     sleep_ms(2);
 }
 
 
-void
+inline void
 StepperMotor::stepBackward()
 {
+    position_ = (position_ + 7) % 8;
     gpio_put(pin1_, fullSteps[position_][0]);
     gpio_put(pin2_, fullSteps[position_][1]);
     gpio_put(pin3_, fullSteps[position_][2]);
     gpio_put(pin4_, fullSteps[position_][3]);
 
-    position_ = (position_ + 7) % 8;
     sleep_ms(2);
 }
-

@@ -111,3 +111,40 @@ configuration and algorithms.
 
 The light sensor driver follows the
 [LTR-381RGB-01 datasheet](https://optoelectronics.liteon.com/upload/download/DS86-2018-0007/LTR-381RGB-01_Final_DS_V1.8.PDF).
+
+## Distance following
+
+The sensor must turn with the motor on GPIO **21, 20, 19, 18**. At power-on,
+physically center the mechanism: the firmware assumes position 5672 within the
+existing 0–11343 half-step travel. There is no homing switch or absolute position
+feedback. The other motor is unused.
+
+The motor sweeps until it sees a valid object within **1000 mm**, then repeatedly
+scans a local ±256 half-step window and turns toward the average position of the
+closest returns (40 mm tolerance). This lets it follow objects moving across the
+sensor's view. It resumes the broad sweep when the local scan loses the object.
+It follows nearby surfaces, including stationary ones; a single range sensor
+cannot identify motion independently or distinguish people from other objects.
+Fast objects may leave the local window and need to be reacquired.
+
+Measurements are taken while stationary, and readings that overlap movement are
+discarded. Invalid samples do not count as targets. Sensor errors/timeouts pause
+movement and restart the sensor, preserving the motor's estimated position.
+Tune `maxDistanceMm`, `radius`, `stride`, and `distanceToleranceMm` in
+`src/distance_tracker.h` for your scene and mechanism. Smaller strides improve
+angular sampling but slow the scan. The motor retains its existing 2 ms half-step
+interval. The piezo on GPIO **0** plays an alternating rising/falling robot
+"woop" when an object is acquired. Each sound briefly pauses movement for 180 ms;
+it plays once per acquisition, with a 3-second cooldown to avoid chatter.
+
+Run all host sensor/motor/tracking tests:
+
+```sh
+bazelisk test //tests:all --platforms=@platforms//host --test_output=errors
+```
+
+Hardware check: center before powering on, place an object within 1 m, move it
+slowly across the scan axis in both directions, then remove it. Confirm local
+following, reacquisition, and travel limits. Disconnect the sensor and confirm
+that stepping pauses during retries. Tracking tuning still needs this physical
+validation; host tests simulate the scene and GPIO sequence.
