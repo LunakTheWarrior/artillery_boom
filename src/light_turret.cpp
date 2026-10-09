@@ -1,32 +1,57 @@
-#include <stdio.h>
+#include <cstdio>
 
 #include "pico/stdlib.h"
-#include "hardware/i2c.h"
 #include "hardware/pwm.h"
-#include "pitches.h"
 #include "ModulinoDistance.h"
 #include "searcher.h"
-#include <thread>
 
+using namespace std::chrono_literals;
 
-
-int main()
-{
+int main() {
     stdio_init_all();
-
-    ModulinoDistance distance(i2c1, 2, 3);
-
     sleep_ms(2000);
 
+    ModulinoDistance distance(i2c1, 2, 3);
     PersonSearcher searcher;
 
-    const auto modelIdForDistanceThing = distance.readModelId();
-    printf("The modeasdasdasdlid i read was: %d\n", modelIdForDistanceThing);
-    const std::uint16_t modelType = distance.readRegister<std::uint16_t>(std::uint16_t(0x010F));
-    printf("Modeltype: %d\n", modelType);
+    while (true) {
+        auto started = distance.begin(20ms).and_then([&] { return distance.startRanging(); });
+        if (!started) {
+            std::printf("Distance sensor: %s; retrying\n", ModulinoDistance::errorName(started.error()));
+            sleep_ms(1000);
+            continue;
+        }
+        std::printf("VL53L4CD initialized; distance readings are in millimeters\n");
 
-    while (true)
-    {
-        searcher.findPerson(10);
+        auto sampleDeadline = make_timeout_time_ms(1000);
+        while (true) {
+            auto measurement = distance.readMeasurement();
+            if (measurement) {
+                sampleDeadline = make_timeout_time_ms(1000);
+                if (measurement->valid()) {
+                    std::printf("Distance: %u mm (sigma %.2f mm, signal %lu kcps)\n",
+                                static_cast<unsigned>(measurement->distanceMm),
+                                static_cast<double>(measurement->sigmaMm),
+                                static_cast<unsigned long>(measurement->signalKcps));
+                } else {
+                    std::printf("Invalid distance sample: status=%u, raw=%u\n",
+                                static_cast<unsigned>(measurement->rangeStatus),
+                                static_cast<unsigned>(measurement->rawRangeStatus));
+                }
+            } else if (measurement.error() != ModulinoDistance::Error::NotReady) {
+                std::printf("Distance sensor: %s; restarting\n", ModulinoDistance::errorName(measurement.error()));
+                (void)distance.stopRanging();
+                sleep_ms(1000);
+                break;
+            }
+            if (time_reached(sampleDeadline)) {
+                std::printf("Distance sensor stopped producing samples; restarting\n");
+                (void)distance.stopRanging();
+                sleep_ms(1000);
+                break;
+            }
+            // Existing scan logic takes an IR intensity, not a distance in mm.
+            searcher.findPerson(10);
+        }
     }
 }

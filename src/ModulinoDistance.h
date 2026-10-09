@@ -1,88 +1,112 @@
-#include <cstdint>
-#include "hardware/i2c.h"
-#include <memory>
-#include "hardware/gpio.h"
-#include <bit>
+#pragma once
 
-class ModulinoDistance
-{
+#include "VL53L4CDRegisters.h"
+#include "hardware/i2c.h"
+
+#include <array>
+#include <chrono>
+#include <expected>
+#include <span>
+#include <type_traits>
+
+class ModulinoDistance {
 public:
-    ModulinoDistance(i2c_inst_t* i2c, const std::uint32_t sdaPin, const std::uint32_t sclPin)
-        : sdaPin_(sdaPin)
-        , sclPin_(sclPin)
-        , i2c_(i2c)
-    {
-        i2c_init(i2c_, baudraute_);
-        gpio_set_function(sdaPin_, GPIO_FUNC_I2C);
-        gpio_set_function(sclPin_, GPIO_FUNC_I2C);
-        gpio_pull_up(sdaPin_);
-        gpio_pull_up(sclPin_);
-        sleep_ms(100);
+    using Milliseconds = std::chrono::milliseconds;
+
+    enum class Error {
+        I2cFailure,
+        I2cTimeout,
+        Timeout,
+        WrongDevice,
+        InvalidArgument,
+        NotInitialized,
+        NotRanging,
+        AlreadyRanging,
+        NotReady,
+        InvalidMeasurement,
+    };
+
+    template <typename T>
+    using Result = std::expected<T, Error>;
+    using Status = Result<void>;
+
+    struct Measurement {
+        std::uint16_t distanceMm{};
+        // ST ULD status codes: only 0 is a valid distance; 255 is unknown/invalid.
+        std::uint8_t rangeStatus{255};
+        std::uint8_t rawRangeStatus{};
+        std::uint8_t streamCount{};
+        std::uint16_t numberOfSpads{};
+        float sigmaMm{};
+        std::uint32_t signalKcps{};
+        std::uint32_t ambientKcps{};
+        std::uint32_t signalPerSpadKcps{};
+        std::uint32_t ambientPerSpadKcps{};
+
+        [[nodiscard]] bool valid() const { return rangeStatus == 0; }
+    };
+
+    static constexpr std::uint8_t defaultAddress = 0x29; // Pico uses 7-bit addresses.
+    static constexpr std::uint16_t expectedModelId = 0xEBAA;
+
+    ModulinoDistance(i2c_inst_t* i2c, std::uint32_t sdaPin, std::uint32_t sclPin);
+
+    // Boot, identify, configure and calibrate. Leaves the device stopped.
+    [[nodiscard]] Status begin(Milliseconds budget = Milliseconds{50},
+                               Milliseconds interval = Milliseconds{0});
+    // budget: 10..200 ms; interval: 0 (continuous), or strictly greater than budget.
+    // Stop ranging before changing timing. The factory calibration is retained.
+    [[nodiscard]] Status setRangeTiming(Milliseconds budget, Milliseconds interval);
+    [[nodiscard]] Status startRanging(Milliseconds timeout = Milliseconds{1000});
+    [[nodiscard]] Status stopRanging();
+    [[nodiscard]] Result<bool> dataReady();
+    // Nonblocking: NotReady means no fresh sample. Invalid samples still carry diagnostics.
+    [[nodiscard]] Result<Measurement> readMeasurement();
+    // Bounded blocking convenience API; rejects invalid samples, including zero-SPAD results.
+    [[nodiscard]] Result<std::uint16_t> readDistance(Milliseconds timeout = Milliseconds{1000});
+    [[nodiscard]] Result<std::uint16_t> readModelId();
+    [[nodiscard]] static const char* errorName(Error error);
+
+    // Low-level diagnostics after begin() has configured the I2C bus. Writing these
+    // directly can invalidate the driver's state; use the higher-level APIs normally.
+    template <vl53l4cd::RegisterValue T>
+    [[nodiscard]] Result<T> readRegister(vl53l4cd::Register<T> reg) {
+        std::array<std::uint8_t, sizeof(T)> bytes{};
+        if (auto status = readBytes(reg.address, bytes); !status) {
+            return std::unexpected(status.error());
+        }
+        T value{};
+        for (const auto byte : bytes) {
+            value = static_cast<T>((value << 8) | byte);
+        }
+        return value;
     }
 
-    std::uint8_t
-    readModelId();
-
-    template <class T>
-    void
-    selectRegister(const T);
-
-
-    template <class T>
-    T readRegister(const std::uint16_t reg);
-
+    template <vl53l4cd::RegisterValue T>
+    [[nodiscard]] Status writeRegister(vl53l4cd::Register<T> reg, std::type_identity_t<T> value) {
+        std::array<std::uint8_t, sizeof(T)> bytes{};
+        for (std::size_t i = 0; i < bytes.size(); ++i) {
+            bytes[bytes.size() - 1 - i] = static_cast<std::uint8_t>(value >> (8 * i));
+        }
+        return writeBytes(reg.address, bytes);
+    }
 
 private:
-    static constexpr std::uint32_t baudraute_{100'000};
-    static constexpr std::uint16_t modelIdRegister_       = 0x010F;
-    static constexpr std::uint16_t interruptStatusRegister_ = 0x0031;
-    static constexpr std::uint16_t interruptClearRegister_  = 0x0086;
-    static constexpr std::uint16_t systemStartRegister_     = 0x0087;
-    static constexpr std::uint16_t rangeStatusRegister_     = 0x0089;
-    static constexpr std::uint16_t distanceRegister_        = 0x0096;
-    static constexpr std::uint8_t i2cAddress_ = 0x29;
+    enum class State { Uninitialized, Idle, Ranging };
+    static constexpr std::uint32_t busSpeedHz = 100'000;
+    static constexpr std::uint32_t transferTimeoutUs = 10'000;
 
+    [[nodiscard]] Status readBytes(std::uint16_t address, std::span<std::uint8_t> bytes);
+    [[nodiscard]] Status writeBytes(std::uint16_t address, std::span<const std::uint8_t> bytes);
+    [[nodiscard]] Result<bool> checkDataReady();
+    [[nodiscard]] Status waitForData(Milliseconds timeout);
+    [[nodiscard]] Status configure();
+    // Best-effort stop after an uncertain hardware state; preserve the original error.
+    [[nodiscard]] Status failAndStop(Error error);
+
+    i2c_inst_t* i2c_;
     std::uint32_t sdaPin_;
     std::uint32_t sclPin_;
-    i2c_inst_t* i2c_{nullptr};
+    State state_{State::Uninitialized};
+    bool busConfigured_{false};
 };
-
-template <class T>
-inline void ModulinoDistance::selectRegister(const T reg)
-{
-    const T flippedVal = std::byteswap(reg);
-    auto* addr = reinterpret_cast<const std::uint8_t*>(&flippedVal);
-    constexpr auto size = sizeof(T);
-
-    if (const auto resultCode = i2c_write_blocking(
-                                    i2c_,
-                                    i2cAddress_,
-                                    addr,
-                                    size,
-                                    true
-                                ); resultCode != size)
-    {
-        printf("Failed to select register: %d\n", reg);
-    }
-}
-
-template <class T>
-inline T ModulinoDistance::readRegister(const std::uint16_t reg)
-{
-    selectRegister(reg);
-
-    T result;
-    if (const auto bytesRead = i2c_read_blocking(
-        i2c_,
-        i2cAddress_,
-        reinterpret_cast<std::uint8_t*>(&result),
-        sizeof(T),
-        true
-    ); bytesRead != sizeof(T))
-    {
-        printf("Failed to read register %d", reg);
-        return {};
-    }
-
-    return std::byteswap(result);
-}

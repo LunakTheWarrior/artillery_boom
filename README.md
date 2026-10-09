@@ -76,6 +76,23 @@ Two small patches adapt the SDK's native Bazel build:
 When changing SDK/compiler versions, review these patches, update archive
 checksums, run `bazelisk build //...`, and commit the updated module lockfile.
 
+## Distance sensor
+
+The Modulino Distance driver initializes the VL53L4CD and reads distances in
+millimeters using C++23 typed registers and `std::expected` error handling.
+The firmware reports measurements over USB serial. See
+[the distance driver guide](docs/modulino-distance.md) for wiring, API examples,
+initialization details, and hardware validation.
+
+Run the simulated-sensor tests on the host:
+
+```sh
+bazelisk test //tests:modulino_distance_test --platforms=@platforms//host --test_output=errors
+```
+
+Firmware distributions also include `THIRD_PARTY_NOTICES.txt` for ST's sensor
+configuration and algorithms.
+
 ## Sensor reference
 
 The light sensor driver follows the
