@@ -1,0 +1,10 @@
+--- a/src/rp2_common/tinyusb/tinyusb.BUILD
++++ b/src/rp2_common/tinyusb/tinyusb.BUILD
+@@ -10,7 +10,6 @@
+ cc_library(
+     name = "tinyusb",
+     srcs = [
+-        "hw/bsp/rp2040/family.c",
+         "src/class/audio/audio_device.c",
+         "src/class/cdc/cdc_device.c",
+         "src/class/dfu/dfu_device.c",

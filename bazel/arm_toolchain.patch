@@ -1,0 +1,18 @@
+--- a/MODULE.bazel
++++ b/MODULE.bazel
+@@ -27,11 +27,11 @@
+ http_archive(
+     name = "arm_gcc_linux-x86_64",
+     build_file = "//bazel/toolchain:gcc_arm_none_eabi.BUILD",
+-    sha256 = "6cd1bbc1d9ae57312bcd169ae283153a9572bd6a8e4eeae2fedfbc33b115fdbb",
+-    strip_prefix = "arm-gnu-toolchain-13.2.Rel1-x86_64-arm-none-eabi",
++    sha256 = "597893282ac8c6ab1a4073977f2362990184599643b4c5ee34870a8215783a16",
++    strip_prefix = "arm-gnu-toolchain-15.2.rel1-x86_64-arm-none-eabi",
+     urls = [
+-        "https://developer.arm.com/-/media/Files/downloads/gnu/13.2.rel1/binrel/arm-gnu-toolchain-13.2.rel1-x86_64-arm-none-eabi.tar.xz",
+-        "https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/13.2.rel1/binrel/arm-gnu-toolchain-13.2.rel1-x86_64-arm-none-eabi.tar.xz",
++        "https://developer.arm.com/-/media/Files/downloads/gnu/15.2.rel1/binrel/arm-gnu-toolchain-15.2.rel1-x86_64-arm-none-eabi.tar.xz",
++        "https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/15.2.rel1/binrel/arm-gnu-toolchain-15.2.rel1-x86_64-arm-none-eabi.tar.xz",
+     ],
+ )
+ 

@@ -1,0 +1,7 @@
+.git
+.tools
+bazel-*
+build
+docker_build
+.vscode
+firmware

@@ -1,0 +1,10 @@
+build --platforms=@pico-sdk//bazel/platform:rp2350
+build --@pico-sdk//bazel/config:PICO_BOARD=pico2_w
+build --@pico-sdk//bazel/config:PICO_STDIO_USB=true
+build --@pico-sdk//bazel/config:PICO_STDIO_UART=false
+build --@pico-sdk//bazel/config:PICO_DEFAULT_BINARY_INFO=//:binary_info
+build --cxxopt=-std=gnu++23
+build --conlyopt=-std=gnu11
+build --compilation_mode=opt
+build --verbose_failures
+build --@pico-sdk//bazel/config:PICO_BAZEL_BUILD_TYPE=Release
