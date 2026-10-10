@@ -13,14 +13,17 @@ when a printable-part target needs it; you do not need to install OpenSCAD.
 On Fedora:
 
 ```sh
-sudo dnf install gcc-c++ git python3 xz mesa-libEGL
+sudo dnf install gcc-c++ git python3 xz mesa-libEGL libglvnd-opengl \
+  libglvnd-glx fontconfig harfbuzz libX11 wayland-libs mesa-libgbm
 bazelisk build //...
 ```
 
 On Ubuntu:
 
 ```sh
-sudo apt-get install build-essential git python3 curl xz-utils libegl1
+sudo apt-get install build-essential git python3 curl xz-utils \
+  libegl1 libopengl0 libgl1 libfontconfig1 libharfbuzz0b \
+  libx11-xcb1 libwayland-client0 libgbm1
 bazelisk build //...
 ```
 
@@ -30,8 +33,9 @@ The SDK and compiler archives are checksum-pinned, and `MODULE.bazel.lock` recor
 module resolution. No CMake installation or `PICO_SDK_PATH` is needed.
 The Linux x86_64 OpenSCAD 2026.10.08 AppImage is also checksum-pinned in
 `MODULE.bazel`; Bazel runs it in extract-and-run mode, so FUSE and a system
-OpenSCAD package are not needed. Its AppImage uses the system EGL runtime
-(`mesa-libEGL` on Fedora, `libegl1` on Ubuntu).
+OpenSCAD package are not needed. The AppImage still uses host graphics and font
+libraries, included in the install commands above. In particular, EGL and OpenGL
+are separate libraries: Ubuntu needs both `libegl1` and `libopengl0`.
 
 Outputs:
 

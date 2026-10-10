@@ -49,8 +49,9 @@ bazel_dep(name = "rules_shell", version = "0.2.0")
 http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 http_file = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_file")
 
-# OpenSCAD's Linux AppImage is self-contained and works on Fedora without a
-# distro package install. Keep the URL versioned so builds don't track nightly.
+# OpenSCAD's Linux AppImage avoids installing the OpenSCAD distro package, but
+# still needs host graphics/font libraries (see README.md and CI).
+# Keep the URL versioned so builds don't track nightly.
 http_file(
     name = "openscad_appimage",
     downloaded_file_path = "openscad.AppImage",

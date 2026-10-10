@@ -41,7 +41,10 @@ jobs:
       - name: Install host build utilities
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential git python3 curl xz-utils libegl1
+          # The OpenSCAD AppImage still links against host graphics/font libraries.
+          sudo apt-get install -y build-essential git python3 curl xz-utils \
+            libegl1 libopengl0 libgl1 libfontconfig1 libharfbuzz0b \
+            libx11-xcb1 libwayland-client0 libgbm1
 
       - name: Set up Bazel
         uses: bazel-contrib/setup-bazel@0.15.0
