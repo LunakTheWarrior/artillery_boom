@@ -77,8 +77,8 @@ cc_test(
         name = part + "_stl",
         srcs = ["enclosure/pokedex.scad"],
         outs = ["stl/" + part + ".stl"],
-        cmd = "$(location //bazel:openscad.sh) -o $@ -D 'part=\"" + part + "\"' $(SRCS)",
-        tools = ["//bazel:openscad.sh"],
+        cmd = "$(location //bazel:openscad.sh) $(location @openscad_appimage//file) -o $@ -D 'part=\"" + part + "\"' $(SRCS)",
+        tools = ["//bazel:openscad.sh", "@openscad_appimage//file"],
         exec_compatible_with = ["@platforms//os:linux", "@platforms//cpu:x86_64"],
     )
     for part in ["base", "face"]

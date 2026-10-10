@@ -196,7 +196,8 @@ Outputs are `bazel-bin/book_openener/book_openener.hex`, `.elf`, `.map`,
 assembly preview 3MF. Print the foot twice. Bazel downloads checksum-pinned Arduino AVR core 1.8.8 and AVR GCC
 7.3.0 (Arduino 7); no local Arduino IDE, Arduino CLI or installed cores are
 required to build. The AVR build currently runs on Linux x86_64 and needs Python 3.
-STL targets additionally require `openscad` on PATH; its version is host-provided.
+STL targets use the checksum-pinned OpenSCAD AppImage managed by Bazel; no
+system OpenSCAD installation is needed.
 The Uno action supplies its own AVR flags, independent of the root Pico/C++23
 defaults. It checks flash and static SRAM capacity after linking.
 

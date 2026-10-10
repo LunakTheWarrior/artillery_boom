@@ -95,7 +95,7 @@ button nut must fit beside the grille and case wall. Leave slack in the button
 wires to remove the faceplate. This is an unprinted prototype; verify fit with
 your hardware before relying on it for the costume.
 
-With OpenSCAD installed, generate the printable parts through Bazel:
+Generate the printable parts through Bazel (OpenSCAD is fetched automatically):
 
 ```sh
 bazelisk build //team_rocket_buzzer:enclosure

@@ -47,6 +47,17 @@ register_toolchains("@pico-sdk//bazel/toolchain:linux-x86_64-rp2040")
 # Uno SMD firmware: pinned upstream core and Linux x86_64 AVR toolchain.
 bazel_dep(name = "rules_shell", version = "0.2.0")
 http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+http_file = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_file")
+
+# OpenSCAD's Linux AppImage is self-contained and works on Fedora without a
+# distro package install. Keep the URL versioned so builds don't track nightly.
+http_file(
+    name = "openscad_appimage",
+    downloaded_file_path = "openscad.AppImage",
+    executable = True,
+    integrity = "sha256-BhqOHYva1K9awbKjknFMfjX8bT+LQjo3ZZBT5ZtKR/0=",
+    urls = ["https://files.openscad.org/snapshots/OpenSCAD-2026.10.08-x86_64.AppImage"],
+)
 
 http_archive(
     name = "arduino_avr",

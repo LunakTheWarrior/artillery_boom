@@ -7,11 +7,20 @@ Modulino sensors, and a buzzer. The repository also contains an Arduino Uno SMD
 ## Build with Bazel
 
 The supported build host is **Linux x86_64**, matching CI and the downloaded ARM
-toolchain. Install Bazelisk (or Bazel 8.1.0) plus a host C/C++ compiler, Git,
-Python 3, xz, and OpenSCAD (for printable parts). On Ubuntu:
+toolchain. Install Bazelisk (or Bazel 8.1.0), a host C/C++ compiler, Git,
+Python 3, and xz. Bazel downloads the pinned OpenSCAD AppImage automatically
+when a printable-part target needs it; you do not need to install OpenSCAD.
+On Fedora:
 
 ```sh
-sudo apt-get install build-essential git python3 curl xz-utils openscad
+sudo dnf install gcc-c++ git python3 xz
+bazelisk build //...
+```
+
+On Ubuntu:
+
+```sh
+sudo apt-get install build-essential git python3 curl xz-utils
 bazelisk build //...
 ```
 
@@ -19,6 +28,9 @@ Bazelisk reads `.bazelversion`. Bazel downloads the Pico SDK **2.3.1**, Arm GNU
 Toolchain **15.2.Rel1** (`x86_64-arm-none-eabi`), and its other dependencies.
 The SDK and compiler archives are checksum-pinned, and `MODULE.bazel.lock` records
 module resolution. No CMake installation or `PICO_SDK_PATH` is needed.
+The Linux x86_64 OpenSCAD 2026.10.08 AppImage is also checksum-pinned in
+`MODULE.bazel`; Bazel runs it in extract-and-run mode, so FUSE and a system
+OpenSCAD package are not needed.
 
 Outputs:
 

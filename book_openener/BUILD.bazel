@@ -44,8 +44,8 @@ genrule(
         name = part + "_stl",
         srcs = ["enclosure/book_opener.scad"],
         outs = ["enclosure/" + part + ".stl"],
-        cmd = "$(location //bazel:openscad.sh) -o $@ -D 'part=\"" + part + "\"' $(SRCS)",
-        tools = ["//bazel:openscad.sh"],
+        cmd = "$(location //bazel:openscad.sh) $(location @openscad_appimage//file) -o $@ -D 'part=\"" + part + "\"' $(SRCS)",
+        tools = ["//bazel:openscad.sh", "@openscad_appimage//file"],
         exec_compatible_with = ["@platforms//os:linux", "@platforms//cpu:x86_64"],
     )
     for part in ["back", "paddle", "foot", "base", "spool", "guide", "motor_mount", "uno_tray", "sensor_mount"]
@@ -55,8 +55,8 @@ genrule(
     name = "assembly_view",
     srcs = ["enclosure/book_opener.scad"],
     outs = ["enclosure/assembly.3mf"],
-    cmd = "$(location //bazel:openscad.sh) -o $@ -D 'part=\"assembly\"' $(SRCS)",
-    tools = ["//bazel:openscad.sh"],
+    cmd = "$(location //bazel:openscad.sh) $(location @openscad_appimage//file) -o $@ -D 'part=\"assembly\"' $(SRCS)",
+    tools = ["//bazel:openscad.sh", "@openscad_appimage//file"],
     exec_compatible_with = ["@platforms//os:linux", "@platforms//cpu:x86_64"],
 )
 
