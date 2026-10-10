@@ -78,29 +78,47 @@ reserved for the sensor and low-voltage shifter side here; do not add other load
 
 ## Mechanical assembly
 
-1. Print one **back**, one **paddle**, **two feet**, one **guide**, one
-   **motor_mount**, one **spool**, one **uno_tray**, and one **sensor_mount**.
+1. Print one **back**, one **paddle**, **two feet**, one **base**, one **guide**,
+   one **motor_mount**, one **spool**, one **uno_tray**, and one **sensor_mount**.
    Import each STL at 100%, millimetres. The Uno tray holds the controller on
-   the stand's heavy base board.
+   the printed base.
    All files are in print orientation; feet print on their broad triangular side.
-   All printable parts fit within a 256 × 256 × 256 mm build volume: the
-   backplate is 164 × 242 mm and each foot is about 110 × 227 mm. For the
-   complete picture, build `//book_openener:assembly_view` and open
-   `bazel-bin/book_openener/enclosure/assembly.3mf` in Bambu Studio. The brown
-   base and book are illustrative and are not printed parts. The preview base
-   is larger than your print volume and is intended to be made from wood.
+   All printable parts fit within a 256 × 256 × 256 mm build volume: the base is
+   250 × 245 × 14 mm, the backplate is 164 × 242 mm, and each foot is about
+   110 × 227 mm. For the complete picture, build `//book_openener:assembly_view`
+   and open `bazel-bin/book_openener/enclosure/assembly.3mf` in Bambu Studio.
+   Add ballast under the printed base or fasten it to the table; the feet alone
+   are not heavy enough to prevent tipping. In the assembly view, the green
+   board between the guide and motor is the ULN2003 driver (a placement aid,
+   not a printed part). Put its motor connector toward the motor mount.
 2. Stand the two full-height feet on their 110 mm-long base edges, spaced near
    the left and right edges of the backplate. Attach their sloping faces to the
    rear of the backplate, keeping the bottom edges level and the book ledge at
    the bottom. This supports the full height of the upright book at 20° back.
-   Secure both feet to a rigid, heavy base board (about 292 × 270 × 14 mm or
-   larger) with suitable brackets or strong adhesive, then secure the base so
-   the assembly cannot tip when the paddle moves. The SCAD view includes this
-   board as a visual aid; it is not a printed part.
-   Attach the Uno tray to the heavy base board with four small cable ties through
+   Secure both feet to the printed base with strong adhesive, then add ballast
+   beneath the base or fasten it down so the assembly cannot tip when the paddle
+   moves. The guide's four holes line up with the four 4.2 mm holes in the base;
+   fasten it through those holes or glue it down. The motor-mount tie slots line
+   up with two long slots in the base; run a cable tie through each matching
+   slot pair and around the mount. The Uno tray's four tie slots also align with
+   openings in the base.
+   Facing the open book, the **guide** is on the right-hand side of the base,
+   ahead of the book; its eye points along the red cord toward the spool. The
+   **motor mount** is immediately to the right of the guide, with the motor
+   lying horizontally and its shaft/spool facing forward toward the guide.
+   Stick the ULN2003 driver board in the space between them, with its five-pin
+   motor socket facing the motor. Keep that board clear of the spool and cord.
+   Attach the Uno tray to the base with four small cable ties through
    its slots. Press the Uno onto the four flexible posts, USB-B and barrel-jack
    side facing the tray's open edge. The posts locate and retain the board without
    screws. Connect and route the USB, power, and I/O wires before tightening ties.
+   Plug the motor's five-wire keyed connector into the ULN2003 board; the motor
+   wires do **not** connect directly to the Uno. Run the driver input wires to
+   Uno D8–D11 in IN1–IN4 order, and supply the driver from the separate regulated
+   5 V supply. Route the motor lead a short distance from the motor to the driver,
+   then route the driver/Uno wiring around the base's outside right and rear
+   edges, securing it with cable ties. Keep wires away from the red cord, spool,
+   and moving paddle. The assembly preview shows this route in black.
    Push the sensor mount's two clips over the fixed backplate's top edge,
    centered above the book. Snap the Modulino Distance onto its four posts with
    its sensor face pointing toward the visitor. The frame leaves the optical

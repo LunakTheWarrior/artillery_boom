@@ -1,7 +1,7 @@
 // Prototype for a 152 x 230 x 10 mm paperback. Millimetres.
 // Parts print separately. Flexible fabric-tape hinge, cord winch, weak elastic return.
 // No printed rigid hinge: it must accommodate the paperback's bending spine.
-part = "motor_mount"; // [back,paddle,foot,spool,guide,motor_mount,uno_tray,sensor_mount]
+part = "assembly"; // [back,paddle,foot,base,spool,guide,motor_mount,uno_tray,sensor_mount]
 book_w = 152;
 book_h = 230;
 book_t = 10;
@@ -12,6 +12,9 @@ back_height = book_h+12;
 foot_depth = 110;
 foot_height = back_height*cos(lean);
 foot_tip_depth = back_height*sin(lean)+plate*cos(lean);
+base_width = 250;
+base_depth = 245;
+base_thickness = 14;
 motor_d = 28.5; // ASSUMED 28BYJ-48 body: measure yours.
 shaft_d = 5.2; // Clearance diameter, tune a test fit.
 shaft_flats = 3.2; // Double-flat shaft width, measure yours.
@@ -56,6 +59,21 @@ module foot() {
         [foot_depth,0],
         [foot_tip_depth,foot_height]
     ]);
+}
+// Fits within the printer volume and carries the feet, controller, guide and motor.
+module base() {
+    difference() {
+        rounded_plate(base_width,base_depth,base_thickness,4);
+        // Four guide fastener holes, aligned to the guide after its 90-degree turn.
+        for (x=[158,186], y=[207,235])
+            translate([x,y,-0.1]) cylinder(h=base_thickness+0.2,d=4.2);
+        // Cable-tie channels secure the motor mount to the base.
+        for (y=[166,184])
+            translate([198,y,-0.1]) cube([48,4,base_thickness+0.2]);
+        // Cable-tie slots align with the Uno tray's four attachment slots.
+        for (x=[37,119], y=[13.8,73.8])
+            translate([x,y,-0.1]) cube([6,2.4,base_thickness+0.2]);
+    }
 }
 module spool() {
     difference() {
@@ -176,8 +194,7 @@ module sensor_mount() {
                 cube([6,0.8,2.1]);
     }
 }
-// Exploded-free assembly preview. The wooden base and book are visual aids;
-// only the individual part selectors are printable parts.
+// Full-size assembly preview. Export individual part selectors for printing.
 module cord(a,b,d=1.5) {
     hull() {
         translate(a) sphere(d=d);
@@ -191,8 +208,8 @@ module assembly_foot(x) {
         foot();
 }
 module assembly() {
-    // Heavy base board is a visual aid; use a securely fixed wooden board.
-    color([0.48,0.29,0.14]) translate([-35,-120,-14]) cube([292,270,14]);
+    // Printable base plate. Add ballast or bolt it to a table for stability.
+    color([0.48,0.29,0.14]) translate([-5,-115,-base_thickness]) base();
     assembly_foot(0);
     assembly_foot(book_w-2);
     // Fixed panel is tilted back; the book sits on the front (-Z) face.
@@ -211,24 +228,36 @@ module assembly() {
     }
     // The eye faces along the cord path: paddle tab -> guide -> winch spool.
     // Both mounting plates sit fully on the heavy base board.
-    color([0.82,0.24,0.18]) translate([190,90,0]) rotate([0,0,90]) guide();
-    color([0.25,0.29,0.34]) translate([193,46,0]) motor_mount();
-    // Output shaft faces forward; the body ends at y=78 and the spool starts there.
-    color([0.42,0.44,0.47]) translate([220,50,20]) rotate([-90,0,0]) cylinder(h=28,d=motor_d);
-    color([0.86,0.66,0.18]) translate([220,78,20]) rotate([-90,0,0]) spool();
+    color([0.82,0.24,0.18]) translate([187,86,0]) rotate([0,0,90]) guide();
+    color([0.25,0.29,0.34]) translate([190,42,0]) motor_mount();
+    // The common ULN2003 module is shown in the open space between guide and motor.
+    color([0.08,0.38,0.20]) translate([153,44,0]) cube([34,34,2]);
+    color([0.12,0.12,0.12]) translate([164,53,2]) cube([13,16,3]);
+    // Output shaft faces forward; the body ends at y=74 and the spool starts there.
+    color([0.42,0.44,0.47]) translate([217,46,20]) rotate([-90,0,0]) cylinder(h=28,d=motor_d);
+    color([0.86,0.66,0.18]) translate([217,74,20]) rotate([-90,0,0]) spool();
     // Uno tray with a simple board silhouette; USB edge remains accessible.
     color([0.30,0.33,0.36]) translate([28,-107,0]) uno_tray();
     color([0.05,0.40,0.24]) translate([46,-98,5]) cube([68.58,53.34,1.6]);
     color([0.12,0.12,0.14]) translate([46,-98,6.6]) cube([16,15,7]);
     color([0.12,0.12,0.14]) translate([109,-92,6.6]) cube([5,16,10]);
+    // Illustrative motor lead and driver harness; route real wires around the base edge.
+    color([0.08,0.08,0.10]) {
+        cord([195,62,10],[187,62,4],2);
+        cord([153,48,4],[242,48,4],2);
+        cord([242,48,4],[242,-110,4],2);
+        cord([242,-110,4],[122,-110,4],2);
+        cord([122,-110,4],[122,-72,4],2);
+    }
     // Red cord meets the open paddle tab, passes through the eye, and winds
     // around the spool. The guide stays outside the book's page edge.
     cord([104,71,156],[170,110,50],1.4);
-    cord([170,110,50],[230,90,20],1.4);
+    cord([167,106,50],[227,86,20],1.4);
 }
 if(part=="back") back();
 else if(part=="paddle") paddle();
 else if(part=="foot") foot();
+else if(part=="base") base();
 else if(part=="spool") spool();
 else if(part=="guide") guide();
 else if(part=="motor_mount") motor_mount();

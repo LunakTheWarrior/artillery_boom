@@ -1,14 +1,14 @@
 # Team Rocket buzzer
 
-Independent Pico 2 W firmware for James's costume prop. All application code,
+Independent Raspberry Pi Pico H firmware for James's costume prop. All application code,
 tests and enclosure sources are in this folder; the repository's existing Bazel
 SDK/toolchain setup is shared. No turret hardware is needed.
 
-Plays the supplied nine-note Team Rocket motif in a continuous loop (not the
-full theme). Press once to start, then press again to stop. `melody.h` contains
-the notes as `{frequency_hz, duration_ms}`; frequency `0` means silence.
-The default tempo is 120 BPM: change `quarter_ms` to adjust it. Each note's
-duration includes a 25 ms silent articulation gap, including at the loop boundary.
+Plays the supplied 309-note Team Rocket sequence in a continuous loop. Turn the
+potentiometer above its start threshold to play, then below its stop threshold
+to stop. In `notes.h`, each row is stored as
+`{frequency_hz, duration_ms, gap_ms}`; a zero frequency is a rest. Note and gap
+times use the millisecond values from the supplied MIDI conversion.
 
 ## Build and flash
 
@@ -16,7 +16,7 @@ From the repository root:
 
 ```sh
 bazelisk build //team_rocket_buzzer:team_rocket_buzzer
-bazelisk test //team_rocket_buzzer:button_test --platforms=@platforms//host --test_output=errors
+bazelisk test //team_rocket_buzzer:button_test //team_rocket_buzzer:melody_test //team_rocket_buzzer:potentiometer_test --platforms=@platforms//host --test_output=errors
 ```
 
 Hold BOOTSEL while connecting the Pico by USB, then copy
@@ -30,32 +30,40 @@ Use the public aggregate target above or `:firmware_uf2`, rather than the intern
 
 Disconnect power before wiring. GPIO numbers are different from physical pins.
 
-| Connection | Pico 2 W |
+| Connection | Pico H |
 | --- | --- |
-| Normally-open momentary button, first terminal | GP15, physical pin 20 |
-| Button, second terminal | GND, physical pin 18 |
+| Potentiometer outer terminal | 3V3(OUT), physical pin 36 |
+| Other potentiometer outer terminal | GND, physical pin 38 |
+| Potentiometer center/wiper | GP26 / ADC0, physical pin 31 |
 | Bare passive piezo, signal via a 330 ohm series resistor | GP0, physical pin 1 |
 | Piezo, other terminal | GND, physical pin 3 |
 | Power | Micro-USB, from a USB power bank |
 
-GP15 uses the internal pull-up: pressing connects it to ground. Use the
-normally-open contacts of a panel switch. On four-legged tactile switches,
-identify the two separate contact sides first.
+The potentiometer can be a B10K. Connect only to the Pico's 3.3 V and GND; do
+not connect 5 V to the ADC. Turn the knob past about 60% to start the melody,
+then below about 40% to stop. The gap between those thresholds prevents jitter
+from repeatedly starting and stopping playback. Swap the two outer terminals
+if you want the knob direction reversed. The potentiometer is temporary; the
+enclosure's panel hole is still intended for the button you plan to buy later.
 
 This direct drive is for a low-current passive **piezo**. A magnetic buzzer or
 speaker needs an appropriate transistor/amplifier driver; don't connect that
 load directly to a GPIO. An active buzzer cannot reproduce changing pitches.
 
-Power-up is silent. A stable 30 ms press starts looping; the next press stops
-playback, even mid-note. Holding the button does not toggle repeatedly; release
-for at least 30 ms between presses. Starting again restarts the motif from its
-first note. A button held during power-up must
-also be released before it can trigger. Edit the pin constants in `main.cpp`
-if your wiring differs. Wireless and USB serial are not initialized.
+With the potentiometer turned down, power-up is silent. Turning it above the
+upper threshold starts the song loop; turning it below the lower threshold
+stops playback, even mid-note. Turning it up again restarts from the first note.
+Edit `potentiometer_pin` in `main.cpp` if your wiring differs. USB CDC serial
+debugging is enabled. Connect the Pico to your computer with a data-capable USB
+cable and open its serial port in a terminal (115200 baud is a common setting;
+USB CDC does not depend on that baud rate). The firmware reports when it is
+ready, prints the raw ADC reading and idle/playing state about once per second,
+and logs each trigger and song start/stop. The readings range from 0 to 4095;
+turning the potentiometer should move them across the start/stop thresholds.
 
-Hardware check: power up, press once, and let the motif repeat. Release and press
-again mid-note to confirm it stops. Hold the button to check it stays stopped,
-then release and press to restart. Confirm silence at boot as well.
+Hardware check: set the pot low, power up, and confirm silence. Turn it above
+the upper threshold and let the melody repeat; turn it below the lower threshold
+mid-note to confirm it stops, then turn it back up to restart.
 
 ## Printable Pokédex-style enclosure
 
@@ -70,12 +78,16 @@ red or white R decal for the Team Rocket look.
 The board rests on four posts and is held by four printed edge clips, with the
 USB port toward the top opening. The
 mounting grid is 17.78 × 48.26 mm for the 21 × 51 mm PCB, using the
-[official Pico 2 W mechanical drawing](https://datasheets.raspberrypi.com/picow/pico-2-w-datasheet.pdf).
+[official Pico mechanical drawing](https://datasheets.raspberrypi.com/pico/pico-datasheet.pdf).
 The design assumes a board without headers, soldered leads, a nominal 12 mm
 panel-mount momentary button with a shallow body (at most about 18 mm below the
 panel), and a small piezo mounted behind the grille using foam tape. Keep the
 Pico antenna end clear of wires and metal. Carry the power bank outside the
 enclosure, with its cable entering through the USB opening.
+
+The Pico H comes with headers already soldered on. Those headers may interfere
+with the enclosure's support posts and board clips; check the fit before
+installing it, or use a bare Pico board for this enclosure.
 
 Measure your actual button barrel, nut, buzzer and cable before printing. Adjust
 the parameters at the top of the SCAD file. The default hole is 12.4 mm; the

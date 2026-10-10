@@ -42,6 +42,7 @@ archive_override(
 )
 
 register_toolchains("@pico-sdk//bazel/toolchain:linux-x86_64-rp2350")
+register_toolchains("@pico-sdk//bazel/toolchain:linux-x86_64-rp2040")
 
 # Uno SMD firmware: pinned upstream core and Linux x86_64 AVR toolchain.
 bazel_dep(name = "rules_shell", version = "0.2.0")

@@ -1,14 +1,46 @@
-#include "button.h"
-#include "melody.h"
+#include <cstdio>
+
+#include "notes.h"
+#include "potentiometer.h"
+#include "hardware/adc.h"
 #include "hardware/clocks.h"
 #include "hardware/gpio.h"
 #include "hardware/pwm.h"
+#include "pico/stdio_usb.h"
 #include "pico/stdlib.h"
 
 namespace {
 constexpr unsigned buzzer_pin = 0;
-constexpr unsigned button_pin = 15;
+constexpr unsigned potentiometer_pin = 26; // GP26 / ADC0
 constexpr float pwm_divider = 64.0f;
+
+void update_trigger(PotentiometerTrigger& trigger, std::uint16_t reading) {
+    static bool announced = false;
+    static std::uint64_t last_sample_log_ms = 0;
+    const bool was_active = trigger.active();
+    const bool is_active = trigger.update(reading);
+
+    if (!stdio_usb_connected()) return;
+
+    if (!announced) {
+        std::printf("Team Rocket buzzer ready. Potentiometer: GP26/ADC0; start >= %u, stop <= %u.\r\n",
+                    static_cast<unsigned>(PotentiometerTrigger::startThreshold),
+                    static_cast<unsigned>(PotentiometerTrigger::stopThreshold));
+        announced = true;
+    }
+
+    if (was_active != is_active) {
+        std::printf("[trigger] ADC=%u: melody %s\r\n",
+                    static_cast<unsigned>(reading), is_active ? "START" : "STOP");
+    }
+
+    const auto now_ms = time_us_64() / 1000;
+    if (now_ms - last_sample_log_ms >= 1000) {
+        std::printf("[pot] ADC=%u/4095, state=%s\r\n",
+                    static_cast<unsigned>(reading), is_active ? "playing" : "idle");
+        last_sample_log_ms = now_ms;
+    }
+}
 
 void silence() {
     pwm_set_enabled(pwm_gpio_to_slice_num(buzzer_pin), false);
@@ -17,22 +49,24 @@ void silence() {
 }
 
 // Poll during both notes and gaps so a second press stops promptly.
-bool stop_requested(Button& button, std::uint32_t duration_ms) {
+bool stop_requested(PotentiometerTrigger& trigger, std::uint32_t duration_ms) {
     const auto end = time_us_64() / 1000 + duration_ms;
     while (time_us_64() / 1000 < end) {
-        if (button.update(!gpio_get(button_pin), time_us_64() / 1000)) return true;
+        update_trigger(trigger, adc_read());
+        if (!trigger.active()) return true;
         sleep_ms(1);
     }
     return false;
 }
 
-void play_loop(Button& button) {
+void play_loop(PotentiometerTrigger& trigger) {
     const auto slice = pwm_gpio_to_slice_num(buzzer_pin);
+    if (stdio_usb_connected()) std::printf("[song] looping melody (%u notes)\r\n", static_cast<unsigned>(midi1_size));
     while (true) {
-        for (const auto note : melody) {
-            if (note.hz != 0) {
+        for (const auto& note : midi1) {
+            if (note.frequency_hz > 0) {
                 const auto ticks = static_cast<std::uint32_t>(
-                    clock_get_hz(clk_sys) / (pwm_divider * note.hz));
+                    clock_get_hz(clk_sys) / (pwm_divider * note.frequency_hz));
                 // Keep malformed/out-of-range imported notes silent.
                 if (ticks >= 2 && ticks <= 65536) {
                     auto config = pwm_get_default_config();
@@ -44,28 +78,29 @@ void play_loop(Button& button) {
                     pwm_set_enabled(slice, true);
                 }
             }
-            // Include the articulation gap within the beat to preserve tempo.
-            const auto gap_ms = note.duration_ms < 25 ? note.duration_ms : 25;
-            const bool stop = stop_requested(button, note.duration_ms - gap_ms);
+            const bool stop = stop_requested(trigger, static_cast<std::uint32_t>(note.duration_ms));
             silence();
-            if (stop || stop_requested(button, gap_ms)) return;
+            if (stop || stop_requested(trigger, static_cast<std::uint32_t>(note.gap_ms))) {
+                if (stdio_usb_connected()) std::printf("[song] stopped; turn the potentiometer up to restart\r\n");
+                return;
+            }
         }
     }
 }
 }
 
 int main() {
+    stdio_init_all();
     gpio_init(buzzer_pin);
     gpio_set_dir(buzzer_pin, GPIO_OUT);
     silence();
-    gpio_init(button_pin);
-    gpio_set_dir(button_pin, GPIO_IN);
-    gpio_pull_up(button_pin);
-    Button button;
+    adc_init();
+    adc_gpio_init(potentiometer_pin);
+    adc_select_input(0);
+    PotentiometerTrigger trigger;
     while (true) {
-        if (button.update(!gpio_get(button_pin), time_us_64() / 1000)) {
-            play_loop(button);
-        }
+        update_trigger(trigger, adc_read());
+        if (trigger.active()) play_loop(trigger);
         sleep_ms(1);
     }
 }

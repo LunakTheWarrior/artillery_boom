@@ -1,12 +1,20 @@
-"""Select this application's metadata without changing the root .bazelrc."""
+"""Select this application's Pico H platform and metadata."""
 
 def _metadata_impl(settings, attr):
-    return {"@pico-sdk//bazel/config:PICO_DEFAULT_BINARY_INFO": "//team_rocket_buzzer:binary_info"}
+    return {
+        "@pico-sdk//bazel/config:PICO_BOARD": "pico",
+        "@pico-sdk//bazel/config:PICO_DEFAULT_BINARY_INFO": "//team_rocket_buzzer:binary_info",
+        "//command_line_option:platforms": ["@pico-sdk//bazel/platform:rp2040"],
+    }
 
 _metadata = transition(
     implementation = _metadata_impl,
     inputs = [],
-    outputs = ["@pico-sdk//bazel/config:PICO_DEFAULT_BINARY_INFO"],
+    outputs = [
+        "@pico-sdk//bazel/config:PICO_BOARD",
+        "@pico-sdk//bazel/config:PICO_DEFAULT_BINARY_INFO",
+        "//command_line_option:platforms",
+    ],
 )
 
 def _firmware_impl(ctx):
