@@ -1,4 +1,4 @@
-name: Bazel firmware build
+name: Bazel firmware build and tests
 
 on:
   push:
@@ -10,6 +10,28 @@ permissions:
   contents: read
 
 jobs:
+  test:
+    name: Host tests
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install host build utilities
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential git python3 curl xz-utils
+
+      - name: Set up Bazel
+        uses: bazel-contrib/setup-bazel@0.15.0
+        with:
+          bazelisk-cache: true
+          disk-cache: ${{ github.workflow }}
+          repository-cache: true
+
+      - name: Run host tests
+        run: bazel test //tests/... //team_rocket_buzzer:button_test //book_openener:control_test //book_openener:driver_parity_test --platforms=@platforms//host --lockfile_mode=error --test_output=errors
+
   build:
     runs-on: ubuntu-24.04
     steps:
@@ -27,9 +49,6 @@ jobs:
           bazelisk-cache: true
           disk-cache: ${{ github.workflow }}
           repository-cache: true
-
-      - name: Test firmware logic and drivers on the host
-        run: bazel test //tests/... //team_rocket_buzzer:button_test //book_openener:control_test //book_openener:driver_parity_test --platforms=@platforms//host --lockfile_mode=error --test_output=errors
 
       # Bazel downloads the checksum-pinned Arm GNU Toolchain 15.2.Rel1.
       - name: Build firmware and drivers
