@@ -48,12 +48,12 @@ genrule(
         tools = ["//bazel:openscad.sh"],
         exec_compatible_with = ["@platforms//os:linux", "@platforms//cpu:x86_64"],
     )
-    for part in ["back", "paddle", "foot", "spool", "guide", "motor_mount"]
+    for part in ["back", "paddle", "foot", "spool", "guide", "motor_mount", "uno_tray", "sensor_mount"]
 ]
 
 filegroup(
     name = "enclosure",
-    srcs = [":" + part + "_stl" for part in ["back", "paddle", "foot", "spool", "guide", "motor_mount"]],
+    srcs = [":" + part + "_stl" for part in ["back", "paddle", "foot", "spool", "guide", "motor_mount", "uno_tray", "sensor_mount"]],
 )
 
 filegroup(

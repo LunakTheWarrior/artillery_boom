@@ -76,13 +76,23 @@ reserved for the sensor and low-voltage shifter side here; do not add other load
 ## Mechanical assembly
 
 1. Print one **back**, one **paddle**, **two feet**, one **guide**, one
-   **motor_mount** and one **spool**. Import each STL at 100%, millimetres.
+   **motor_mount**, one **spool**, one **uno_tray**, and one **sensor_mount**.
+   Import each STL at 100%, millimetres. The Uno tray holds the controller on
+   the stand's heavy base board.
    All files are in print orientation; feet print on their broad triangular side.
    The largest plate is 164 × 242 mm, so check your bed size.
 2. Stand the feet on their 110 mm edges. Fix the back plate's rear surface to
    their sloping front edges using suitable adhesive or strong mounting tape.
    Space feet across the back, and anchor the entire stand to a heavy base.
    The plate's ledge belongs at the bottom.
+   Attach the Uno tray to the heavy base board with four small cable ties through
+   its slots. Press the Uno onto the four flexible posts, USB-B and barrel-jack
+   side facing the tray's open edge. The posts locate and retain the board without
+   screws. Connect and route the USB, power, and I/O wires before tightening ties.
+   Push the sensor mount's two clips over the fixed backplate's top edge,
+   centered above the book. Snap the Modulino Distance onto its four posts with
+   its sensor face pointing toward the visitor. The frame leaves the optical
+   center open; route the sensor cable behind the backplate.
 3. Put the paperback on the ledge with its back cover against the fixed plate.
    Secure the back cover and rear half of the pages using padded clips or soft
    ribbon through the back's slots. Avoid adhesive on the book itself.
@@ -112,9 +122,9 @@ reserved for the sensor and low-voltage shifter side here; do not add other load
 9. Mount the lever switch so the **paddle** operates it only when closed. Attach
    it with tape/adhesive after experimenting; there is no model-specific switch
    bracket. The switch must operate before the cord becomes slack.
-10. Mount the sensor separately, facing the visitor and clear of the paddle,
-    cord and book throughout their movement. Use removable tape or a small
-    bracket appropriate to the sensor's actual mounting holes.
+10. Check that the sensor field of view stays clear of the top of the book,
+    paddle and cord throughout their movement. Its bracket should remain fixed
+    while the book opens and closes.
 
 The fixed plate and paddle are supports, not a complete rigid linkage. Guide
 placement and elastic attachment are intentionally adjustable. If the motor
@@ -124,8 +134,13 @@ Keep fingers away while operating: the distance sensor is a presence trigger,
 may close the book.
 
 Try 0.2 mm layers, 3 walls, 15–20% infill. PETG suits the paddle's flexing.
-Inspect the spool socket roof, guide eye and motor cradle in the slicer; local
-support may be needed. Smooth the guide hole so it does not abrade the cord.
+Inspect the spool socket roof, guide eye, motor cradle and both boards' split
+snap posts in the slicer; local support may be needed. The posts match the Uno's
+mounting pattern from [Arduino's official board CAD](https://docs.arduino.cc/hardware/uno-rev3-smd)
+and the Modulino's 32 × 16 mm, 3.2 mm-hole pattern from its
+[datasheet](https://docs.arduino.cc/resources/datasheets/ABX00102-datasheet.pdf).
+Test the clips gently; if tight, widen their split or reduce the snap-head
+diameter in SCAD. Smooth the guide hole so it does not abrade the cord.
 Do not print everything before checking the motor socket and book fit.
 
 Build everything from the repository root:

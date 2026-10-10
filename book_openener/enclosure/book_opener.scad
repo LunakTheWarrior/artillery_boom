@@ -1,7 +1,7 @@
 // Prototype for a 152 x 230 x 10 mm paperback. Millimetres.
 // Parts print separately. Flexible fabric-tape hinge, cord winch, weak elastic return.
 // No printed rigid hinge: it must accommodate the paperback's bending spine.
-part = "guide"; // [back,paddle,foot,spool,guide,motor_mount]
+part = "guide"; // [back,paddle,foot,spool,guide,motor_mount,uno_tray,sensor_mount]
 book_w = 152;
 book_h = 230;
 book_t = 10;
@@ -98,10 +98,82 @@ module motor_mount() {
         for(y=[9,27]) translate([3,y,-0.1]) cube([48,3,4.8]);
     }
 }
+// Separate tray for the Uno Rev3 SMD. Push-fit posts follow Arduino's official
+// A000073 Eagle board file: 3.2 mm holes at the coordinates below.
+// USB-B/barrel-jack edge faces the open left side for cable access.
+module uno_tray() {
+    tray_w = 96;
+    tray_h = 74;
+    board_x = 18;
+    board_y = 9;
+    holes = [[13.97,2.54],[66.04,7.62],[66.04,35.56],[15.24,50.8]];
+    difference() {
+        union() {
+            rounded_plate(tray_w,tray_h,3,2);
+            // Keep all four I/O header edges open; the snaps locate the board.
+            for (p=holes) {
+                x = board_x+p[0];
+                y = board_y+p[1];
+                translate([x,y,3]) cylinder(h=2,d=5);
+                translate([x,y,4.6]) cylinder(h=2,d=2.65);
+                // Ramp the snap head into the 3.2 mm board mounting hole.
+                translate([x,y,6.2]) cylinder(h=1.5,d1=2.5,d2=3.7);
+                translate([x,y,7.7]) cylinder(h=0.35,d=3.5);
+            }
+        }
+        // Split each peg so its two halves can flex through the board hole.
+        for (p=holes)
+            translate([board_x+p[0]-3,board_y+p[1]-0.4,4.8])
+                cube([6,0.8,3.4]);
+        // Tie slots attach the tray to the stand's separate heavy base.
+        for (x=[7,tray_w-7],y=[7,tray_h-7])
+            translate([x-3,y-1.2,-0.1]) cube([6,2.4,3.2]);
+    }
+}
+// Modulino Distance holder: Arduino board is 41 x 25.36 mm, with 32 x 16 mm
+// mounting-hole spacing. Its optical face points outward; the middle is open.
+// Two U-clips slide over the 3 mm top edge of the fixed backplate.
+module sensor_mount() {
+    board_x = 6.5;
+    board_y = 6.32;
+    holes = [[4.5,4.68],[36.5,4.68],[4.5,20.68],[36.5,20.68]];
+    difference() {
+        union() {
+            difference() {
+                rounded_plate(54,38,2.4,2);
+                translate([7.5,6.5,-0.1]) cube([39,25,2.6]);
+            }
+            // Split snap pegs align with the sensor board's four Ø3.2 holes.
+            for (p=holes) {
+                x=board_x+p[0]; y=board_y+p[1];
+                // Thin bridges join each post to the frame outside the PCB hole.
+                translate([x-0.4,p[1]<12 ? 6.4 : 29.1,1.8])
+                    cube([0.8,2.5,0.6]);
+                translate([x,y,2.2]) cylinder(h=1.8,d=5);
+                translate([x,y,3.7]) cylinder(h=1.7,d=2.65);
+                translate([x,y,5.0]) cylinder(h=1.4,d1=2.5,d2=3.7);
+                translate([x,y,6.4]) cylinder(h=0.35,d=3.5);
+            }
+            // The outer clips touch only the fixed panel's top edge.
+            for (x=[5,43]) {
+                translate([x,0,-0.5]) cube([6,6,0.8]);
+                translate([x,-8,-2.1]) cube([6,14,1.7]);
+                translate([x,-8,3.5]) cube([6,11,1.7]);
+                translate([x,-8,-0.5]) cube([6,1.7,5.7]);
+            }
+        }
+        // Split the snap heads for a little flex as the PCB presses into place.
+        for (p=holes)
+            translate([board_x+p[0]-3,board_y+p[1]-0.4,4.8])
+                cube([6,0.8,2.1]);
+    }
+}
 if(part=="back") back();
 else if(part=="paddle") paddle();
 else if(part=="foot") foot();
 else if(part=="spool") spool();
 else if(part=="guide") guide();
 else if(part=="motor_mount") motor_mount();
+else if(part=="uno_tray") uno_tray();
+else if(part=="sensor_mount") sensor_mount();
 else assert(false,"Unknown part");
