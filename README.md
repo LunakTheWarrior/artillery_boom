@@ -134,8 +134,14 @@ Tune `maxDistanceMm`, `radius`, `stride`, and `distanceToleranceMm` in
 `src/distance_tracker.h` for your scene and mechanism. Smaller strides improve
 angular sampling but slow the scan. The motor retains its existing 2 ms half-step
 interval. The piezo on GPIO **0** plays an alternating rising/falling robot
-"woop" when an object is acquired. Each sound briefly pauses movement for 180 ms;
-it plays once per acquisition, with a 3-second cooldown to avoid chatter.
+"woop" on valid detections, repeating after a 3-second cooldown while an object
+remains visible. Each sound briefly pauses movement for 320 ms. Three startup
+beeps play before sensor initialization, so the piezo can be checked even with
+the distance sensor disconnected. USB serial logs both the startup test and
+detection sounds. If the startup beeps are silent, verify the flashed firmware
+and the piezo wiring: the configured signal pin is GP0, with the other terminal
+on GND for a bare passive piezo. A buzzer module may need separate power and has
+its own signal/polarity requirements.
 
 Run all host sensor/motor/tracking tests:
 

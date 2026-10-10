@@ -6,15 +6,23 @@
 
 class PersonSearcher {
 public:
+    void testBuzzer() {
+        std::printf("Piezo test on GP0: three startup beeps\n");
+        for (const auto frequency : {1000u, 2000u, 3000u}) {
+            buzzer_.playTone(frequency, 150);
+            sleep_ms(100);
+        }
+    }
+
     void observe(std::optional<std::uint16_t> distance) {
-        const bool wasTracking = tracker_.tracking();
         const int steps = tracker_.observe(distance);
-        if (!wasTracking && tracker_.tracking() && time_reached(nextSound_)) {
-            // A tiny robot "woop!"; alternate rising and falling on acquisition.
-            // Keep the entire sound below 200 ms so sensor polling resumes soon.
+        if (distance && *distance <= DistanceTracker::maxDistanceMm && time_reached(nextSound_)) {
+            std::printf("Piezo GP0: object detected at %u mm\n", static_cast<unsigned>(*distance));
+            // Repeat while fresh valid returns see an object, even if tracking
+            // never drops back into search mode. Total duration is 320 ms.
             constexpr std::array<std::uint32_t, 4> notes{600, 1000, 1600, 2400};
             for (std::size_t i = 0; i < notes.size(); ++i) {
-                buzzer_.playTone(notes[descending_ ? notes.size() - 1 - i : i], 35);
+                buzzer_.playTone(notes[descending_ ? notes.size() - 1 - i : i], 70);
                 sleep_ms(10);
             }
             descending_ = !descending_;

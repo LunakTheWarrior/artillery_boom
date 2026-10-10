@@ -12,6 +12,7 @@ int main() {
 
     ModulinoDistance distance(i2c1, 2, 3);
     PersonSearcher searcher;
+    searcher.testBuzzer();
 
     while (true) {
         searcher.reset();

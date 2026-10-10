@@ -1,0 +1,55 @@
+load("@pico-sdk//bazel/toolchain:objcopy.bzl", "objcopy_to_bin")
+load("@pico-sdk//src/common/pico_binary_info:binary_info.bzl", "custom_pico_binary_info")
+load("@rules_cc//cc:cc_binary.bzl", "cc_binary")
+load("@rules_cc//cc:cc_test.bzl", "cc_test")
+load(":firmware.bzl", "firmware")
+
+package(default_visibility = ["//visibility:public"])
+
+custom_pico_binary_info(
+    name = "binary_info",
+    program_name = "team_rocket_buzzer",
+    program_version_string = "0.1",
+)
+
+cc_binary(
+    name = "application",
+    srcs = ["main.cpp", "button.h", "melody.h"],
+    deps = [
+        "@pico-sdk//src/rp2_common/hardware_clocks",
+        "@pico-sdk//src/rp2_common/hardware_gpio",
+        "@pico-sdk//src/rp2_common/hardware_pwm",
+        "@pico-sdk//src/rp2_common/pico_stdlib",
+    ],
+)
+
+firmware(name = "team_rocket_buzzer.elf", binary = ":application")
+
+objcopy_to_bin(
+    name = "firmware_bin",
+    src = ":team_rocket_buzzer.elf",
+    out = "team_rocket_buzzer.bin",
+)
+
+genrule(
+    name = "firmware_uf2",
+    srcs = [":team_rocket_buzzer.elf"],
+    outs = ["team_rocket_buzzer.uf2"],
+    cmd = "$(location @picotool//:picotool) uf2 convert --quiet -t elf $(location :team_rocket_buzzer.elf) $@",
+    tools = ["@picotool"],
+)
+
+filegroup(
+    name = "team_rocket_buzzer",
+    srcs = [":team_rocket_buzzer.elf", ":firmware_bin", ":firmware_uf2"],
+)
+
+cc_test(
+    name = "button_test",
+    size = "small",
+    srcs = ["button_test.cpp", "button.h"],
+    copts = ["-Wall", "-Wextra", "-Werror"],
+    target_compatible_with = ["@platforms//os:linux", "@platforms//cpu:x86_64"],
+)
+
+filegroup(name = "enclosure", srcs = glob(["enclosure/*"]))
