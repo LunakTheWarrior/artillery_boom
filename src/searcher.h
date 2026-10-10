@@ -3,9 +3,21 @@
 #include "distance_tracker.h"
 #include "stepper_motor.h"
 #include "SongPlayer.h"
+#include "hardware/gpio.h"
+#include "pico/stdlib.h"
+
+#include <array>
+#include <cstdint>
 
 class PersonSearcher {
 public:
+    PersonSearcher() {
+        for (const auto pin : motorPins_) {
+            gpio_init(pin);
+            gpio_set_dir(pin, GPIO_OUT);
+        }
+    }
+
     void testBuzzer() {
         std::printf("Piezo test on GP0: three startup beeps\n");
         for (const auto frequency : {1000u, 2000u, 3000u}) {
@@ -29,15 +41,18 @@ public:
             nextSound_ = make_timeout_time_ms(3000);
         }
         for (int i = 0; i < (steps < 0 ? -steps : steps); ++i) {
-            if (steps > 0) motor_.stepForward();
-            else motor_.stepBackward();
+            const auto& state = steps > 0 ? motor_.stepForward() : motor_.stepBackward();
+            for (std::size_t pin = 0; pin < motorPins_.size(); ++pin)
+                gpio_put(motorPins_[pin], state[pin]);
+            sleep_ms(2);
         }
     }
     void reset() { tracker_.reset(); }
 
 private:
+    inline static constexpr std::array<std::uint32_t, 4> motorPins_{{21, 20, 19, 18}};
     DistanceTracker tracker_;
-    StepperMotor motor_{{21, 20, 19, 18}};
+    StepperMotor motor_;
     SongPlayer buzzer_{0};
     absolute_time_t nextSound_{make_timeout_time_ms(0)};
     bool descending_{false};

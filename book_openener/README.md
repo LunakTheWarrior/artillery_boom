@@ -14,8 +14,11 @@ A four-wire bipolar motor or STEP/DIR driver needs different firmware and wiring
 
 ## What is included
 
-- `firmware/book_openener/book_openener.ino`: Uno sketch; no external Arduino
-  library dependencies beyond the AVR core's Wire.
+- `firmware/book_openener/book_openener.cpp`: standard C++ translation unit
+  with Arduino `setup()`/`loop()` entry points; no `.ino` preprocessing.
+- `src/stepper_motor.h`: shared, platform-independent 28BYJ half-step sequence
+  used by both the Pico 2 W turret and this Uno firmware. Each platform keeps
+  its own GPIO/timing adapter; the coil sequence itself is shared.
 - `ModulinoDistance.h/.cpp` beside the sketch: AVR port of **our existing Pico
   driver**, with the same sensor configuration/calibration, timing equations,
   typed registers, result decoding, status mapping and zero-SPAD rejection.
@@ -80,11 +83,20 @@ reserved for the sensor and low-voltage shifter side here; do not add other load
    Import each STL at 100%, millimetres. The Uno tray holds the controller on
    the stand's heavy base board.
    All files are in print orientation; feet print on their broad triangular side.
-   The largest plate is 164 × 242 mm, so check your bed size.
-2. Stand the feet on their 110 mm edges. Fix the back plate's rear surface to
-   their sloping front edges using suitable adhesive or strong mounting tape.
-   Space feet across the back, and anchor the entire stand to a heavy base.
-   The plate's ledge belongs at the bottom.
+   All printable parts fit within a 256 × 256 × 256 mm build volume: the
+   backplate is 164 × 242 mm and each foot is about 110 × 227 mm. For the
+   complete picture, build `//book_openener:assembly_view` and open
+   `bazel-bin/book_openener/enclosure/assembly.3mf` in Bambu Studio. The brown
+   base and book are illustrative and are not printed parts. The preview base
+   is larger than your print volume and is intended to be made from wood.
+2. Stand the two full-height feet on their 110 mm-long base edges, spaced near
+   the left and right edges of the backplate. Attach their sloping faces to the
+   rear of the backplate, keeping the bottom edges level and the book ledge at
+   the bottom. This supports the full height of the upright book at 20° back.
+   Secure both feet to a rigid, heavy base board (about 292 × 270 × 14 mm or
+   larger) with suitable brackets or strong adhesive, then secure the base so
+   the assembly cannot tip when the paddle moves. The SCAD view includes this
+   board as a visual aid; it is not a printed part.
    Attach the Uno tray to the heavy base board with four small cable ties through
    its slots. Press the Uno onto the four flexible posts, USB-B and barrel-jack
    side facing the tray's open edge. The posts locate and retain the board without
@@ -103,22 +115,26 @@ reserved for the sensor and low-voltage shifter side here; do not add other load
    fabric-tape hinge**. Leave a flexible bridge around the book's spine and
    thickness; do not make the paperback follow a tight rigid pivot.
    Test opening and closing by hand before connecting the motor.
-6. Tie a cord to the paddle's projecting outer-edge tab. Place the cord guide
-   **left of the spine and in front of the page plane**, ideally at the tab's
-   height. Raise its base on a securely fixed block if necessary. The guide must
-   pull the paddle outward as well as left when the book is closed.
-   As a starting geometry, try 100 mm left of the spine and 120 mm forward.
-   Route cord from the tab through the smooth guide eye to the motor spool.
-7. Secure the motor body in the cradle with two cable ties, clear of its wires
-   and output shaft. Anchor the cradle. Test the spool socket before pressing it
-   onto the shaft: adjust `shaft_d` and `shaft_flats` to your measured motor.
-   Tie the cord through the spool flange hole and wind neatly on the barrel.
-   Keep a little cord on the barrel at closed position.
+6. Use thin, low-stretch **braided cord or fishing line**; this is a flexible
+   tether, not a rigid rod or electrical wire. Tie it to the paddle's projecting
+   outer-edge tab and route it through the guide eye. The guide is a fixed
+   fairlead: it keeps the line clear of the book edge and steers it toward the
+   spool. In the assembly view it sits outboard of the moving page edge, with
+   its mounting holes on the base. Keep the line clear of the visible spread.
+7. Secure the motor body in the cradle with two cable ties, with its output
+   shaft pointing toward the spool. The spool sits on the exposed shaft end;
+   it does not overlap the motor body. Test the socket before pressing it on:
+   adjust `shaft_d` and `shaft_flats` to your measured motor. Tie the cord
+   through the spool flange hole and wind neatly on the barrel, leaving a little
+   cord on the barrel when the book is closed.
 8. Add a weak elastic return between the paddle and fixed support, positioned
    to pull the paddle shut. Move it by hand through the entire intended travel:
    the elastic must always favour closing and must not go over centre.
    Start with a **60–90° opening**, not a fully flat 180° opening.
-   The motor winds the cord to open; on closing it unwinds and the elastic follows.
+   The 28BYJ-48 actively reverses to pay the cord out while closing; its gearbox
+   is not expected to freewheel. The weak elastic helps the pages follow the
+   loosening cord back to closed. Keep the band weak enough that opening does
+   not stall the motor.
 9. Mount the lever switch so the **paddle** operates it only when closed. Attach
    it with tape/adhesive after experimenting; there is no model-specific switch
    bracket. The switch must operate before the cord becomes slack.
@@ -154,11 +170,12 @@ Or build firmware or printed parts separately:
 ```sh
 bazelisk build //book_openener:firmware
 bazelisk build //book_openener:enclosure
+bazelisk build //book_openener:assembly_view
 ```
 
 Outputs are `bazel-bin/book_openener/book_openener.hex`, `.elf`, `.map`,
-`.size.txt`, notices, and `bazel-bin/book_openener/enclosure/*.stl`. Print the
-foot twice. Bazel downloads checksum-pinned Arduino AVR core 1.8.8 and AVR GCC
+`.size.txt`, notices, `bazel-bin/book_openener/enclosure/*.stl`, and the
+assembly preview 3MF. Print the foot twice. Bazel downloads checksum-pinned Arduino AVR core 1.8.8 and AVR GCC
 7.3.0 (Arduino 7); no local Arduino IDE, Arduino CLI or installed cores are
 required to build. The AVR build currently runs on Linux x86_64 and needs Python 3.
 STL targets additionally require `openscad` on PATH; its version is host-provided.

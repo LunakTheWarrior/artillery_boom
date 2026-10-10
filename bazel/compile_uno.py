@@ -3,7 +3,6 @@
 
 Uses the Arduino AVR platform's C/C++/link flags. No Arduino CLI, installed
 Arduino packages, network access, or sketch preprocessing is required.
-The .ino must include Arduino.h and declare functions before their use.
 """
 import argparse
 from pathlib import Path
@@ -13,7 +12,8 @@ import tempfile
 parser = argparse.ArgumentParser()
 parser.add_argument("--compiler", type=Path, required=True)
 parser.add_argument("--core-header", type=Path, required=True)
-parser.add_argument("--sketch", type=Path, required=True)
+parser.add_argument("--source", type=Path, required=True)
+parser.add_argument("--stepper-header", type=Path, required=True)
 parser.add_argument("--out", type=Path, required=True)
 args = parser.parse_args()
 
@@ -21,11 +21,13 @@ args = parser.parse_args()
 tools = args.compiler.absolute().parent
 core = args.core_header.absolute().parent
 arduino = core.parent.parent
-sketch = args.sketch.absolute()
+source = args.source.absolute()
+stepper_header = args.stepper_header.absolute()
 out = args.out.absolute()
 out.mkdir(parents=True, exist_ok=True)
 wire = arduino / "libraries/Wire/src"
-includes = [core, arduino / "variants/standard", wire, sketch.parent]
+includes = [core, arduino / "variants/standard", wire, source.parent,
+            stepper_header.parent]
 common = [
     "-mmcu=atmega328p", "-DF_CPU=16000000L", "-DARDUINO=10819",
     "-DARDUINO_AVR_UNO", "-DARDUINO_ARCH_AVR", "-Os", "-flto",
@@ -39,11 +41,11 @@ with tempfile.TemporaryDirectory(prefix="book-uno-") as temporary:
     work = Path(temporary)
     sources = sorted(p for directory in (core, wire) for p in directory.rglob("*")
                      if p.suffix in (".c", ".cpp", ".S"))
-    application = [sketch] + sorted(sketch.parent.glob("*.cpp"))
+    application = sorted(source.parent.glob("*.cpp"))
     core_objects, app_objects = [], []
     for index, source in enumerate(sources + application):
         obj = work / (str(index) + ".o")
-        if source.suffix in (".cpp", ".ino"):
+        if source.suffix == ".cpp":
             tool = tools / "avr-g++"
             flags = ["-x", "c++", "-std=gnu++11", "-fno-exceptions",
                      "-fno-threadsafe-statics", "-fpermissive"]

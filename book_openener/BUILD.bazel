@@ -1,6 +1,5 @@
 load("@rules_cc//cc:cc_test.bzl", "cc_test")
 load("@rules_cc//cc:cc_library.bzl", "cc_library")
-load("@rules_shell//shell:sh_test.bzl", "sh_test")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -8,7 +7,7 @@ FIRMWARE_SOURCES = glob(["firmware/book_openener/*"])
 
 genrule(
     name = "firmware",
-    srcs = FIRMWARE_SOURCES + ["@arduino_avr//:sources"],
+    srcs = FIRMWARE_SOURCES + ["@arduino_avr//:sources", "//:stepper_sources"],
     outs = [
         "book_openener.elf",
         "book_openener.hex",
@@ -18,7 +17,8 @@ genrule(
     cmd = "python3 $(location //bazel:compile_uno.py)" +
           " --compiler $(location @avr_gcc//:bin/avr-g++)" +
           " --core-header $(location @arduino_avr//:cores/arduino/Arduino.h)" +
-          " --sketch $(location firmware/book_openener/book_openener.ino)" +
+          " --source $(location firmware/book_openener/book_openener.cpp)" +
+          " --stepper-header $(location //:stepper_sources)" +
           " --out $(@D)",
     tools = [
         "//bazel:compile_uno.py",
@@ -51,6 +51,15 @@ genrule(
     for part in ["back", "paddle", "foot", "spool", "guide", "motor_mount", "uno_tray", "sensor_mount"]
 ]
 
+genrule(
+    name = "assembly_view",
+    srcs = ["enclosure/book_opener.scad"],
+    outs = ["enclosure/assembly.3mf"],
+    cmd = "$(location //bazel:openscad.sh) -o $@ -D 'part=\"assembly\"' $(SRCS)",
+    tools = ["//bazel:openscad.sh"],
+    exec_compatible_with = ["@platforms//os:linux", "@platforms//cpu:x86_64"],
+)
+
 filegroup(
     name = "enclosure",
     srcs = [":" + part + "_stl" for part in ["back", "paddle", "foot", "spool", "guide", "motor_mount", "uno_tray", "sensor_mount"]],
@@ -58,15 +67,16 @@ filegroup(
 
 filegroup(
     name = "book_openener",
-    srcs = [":firmware", ":enclosure", ":notices"],
+    srcs = [":firmware", ":enclosure", ":assembly_view", ":notices"],
 )
 
 cc_library(
     name = "simulated_sketch",
     srcs = ["firmware/book_openener/ModulinoDistance.cpp"],
     hdrs = glob(["firmware/book_openener/*.h", "tests/fakes/*.h"]),
-    textual_hdrs = ["firmware/book_openener/book_openener.ino"],
+    textual_hdrs = ["firmware/book_openener/book_openener.cpp"],
     includes = ["tests/fakes"],
+    deps = ["//:stepper_motor"],
     copts = ["-std=c++11", "-Wall", "-Wextra", "-Werror"],
     target_compatible_with = ["@platforms//os:linux", "@platforms//cpu:x86_64"],
 )
@@ -75,19 +85,20 @@ cc_test(
     name = "control_test",
     size = "small",
     srcs = ["tests/test.cpp"],
-    deps = [":simulated_sketch"],
-    copts = ["-std=c++11", "-Wall", "-Wextra", "-Werror", "-UNDEBUG"],
+    copts = ["-Wall", "-Wextra", "-Werror"],
+    deps = [":simulated_sketch", "@googletest//:gtest_main"],
     target_compatible_with = ["@platforms//os:linux", "@platforms//cpu:x86_64"],
 )
 
-sh_test(
+cc_test(
     name = "driver_parity_test",
     size = "small",
-    srcs = ["tests/parity.sh"],
+    srcs = ["tests/driver_parity_test.cpp"],
     data = [
-        "tests/check_driver_parity.py",
         "firmware/book_openener/ModulinoDistance.cpp",
         "firmware/book_openener/VL53L4CDRegisters.h",
         "//:distance_driver_sources",
     ],
+    deps = ["@googletest//:gtest_main"],
+    target_compatible_with = ["@platforms//os:linux", "@platforms//cpu:x86_64"],
 )

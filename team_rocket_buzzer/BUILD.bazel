@@ -49,6 +49,7 @@ cc_test(
     size = "small",
     srcs = ["button_test.cpp", "button.h"],
     copts = ["-Wall", "-Wextra", "-Werror"],
+    deps = ["@googletest//:gtest_main"],
     target_compatible_with = ["@platforms//os:linux", "@platforms//cpu:x86_64"],
 )
 

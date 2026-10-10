@@ -1,13 +1,17 @@
 // Prototype for a 152 x 230 x 10 mm paperback. Millimetres.
 // Parts print separately. Flexible fabric-tape hinge, cord winch, weak elastic return.
 // No printed rigid hinge: it must accommodate the paperback's bending spine.
-part = "guide"; // [back,paddle,foot,spool,guide,motor_mount,uno_tray,sensor_mount]
+part = "motor_mount"; // [back,paddle,foot,spool,guide,motor_mount,uno_tray,sensor_mount]
 book_w = 152;
 book_h = 230;
 book_t = 10;
 plate = 3;
 paddle_t = 1.6;
 lean = 20; // Degrees back from vertical.
+back_height = book_h+12;
+foot_depth = 110;
+foot_height = back_height*cos(lean);
+foot_tip_depth = back_height*sin(lean)+plate*cos(lean);
 motor_d = 28.5; // ASSUMED 28BYJ-48 body: measure yours.
 shaft_d = 5.2; // Clearance diameter, tune a test fit.
 shaft_flats = 3.2; // Double-flat shaft width, measure yours.
@@ -22,7 +26,7 @@ module back() {
         union() {
             rounded_plate(book_w+12,book_h+12,plate);
             // Bottom ledge supports the book, but stops short of the spine hinge.
-            translate([16,0,plate]) cube([book_w-10,4,book_t+5]);
+            translate([6,0,-(book_t+5)]) cube([book_w,4,book_t+5]);
         }
         // Reusable ties/ribbon around the stationary back half; avoid visible pages.
         for(x=[9,book_w+3],y=[30,book_h-18])
@@ -47,7 +51,11 @@ module paddle() {
 // Print on broad triangular side. In use rotate to stand on the long base edge.
 // Front sloping edge supports the rear plate at 20 degrees from vertical.
 module foot() {
-    linear_extrude(14) polygon([[0,0],[110,0],[130*tan(lean),130]]);
+    linear_extrude(14) polygon([
+        [plate*cos(lean),0],
+        [foot_depth,0],
+        [foot_tip_depth,foot_height]
+    ]);
 }
 module spool() {
     difference() {
@@ -168,6 +176,56 @@ module sensor_mount() {
                 cube([6,0.8,2.1]);
     }
 }
+// Exploded-free assembly preview. The wooden base and book are visual aids;
+// only the individual part selectors are printable parts.
+module cord(a,b,d=1.5) {
+    hull() {
+        translate(a) sphere(d=d);
+        translate(b) sphere(d=d);
+    }
+}
+module assembly_foot(x) {
+    // Map the printed foot's depth/height profile into world Y/Z so its
+    // sloping edge follows the leaning back plate and its base stays level.
+    translate([x,0,0]) multmatrix([[0,0,1,0],[-1,0,0,0],[0,1,0,0],[0,0,0,1]])
+        foot();
+}
+module assembly() {
+    // Heavy base board is a visual aid; use a securely fixed wooden board.
+    color([0.48,0.29,0.14]) translate([-35,-120,-14]) cube([292,270,14]);
+    assembly_foot(0);
+    assembly_foot(book_w-2);
+    // Fixed panel is tilted back; the book sits on the front (-Z) face.
+    // Local plate Y is height; rotate it upright and lean its top away from
+    // the visitor (positive world Y is the book's front).
+    translate([0,0,plate*sin(lean)]) rotate([90+lean,0,0]) {
+        color([0.24,0.27,0.30]) back();
+        color([0.78,0.62,0.40]) translate([6,6,-book_t]) cube([book_w,book_h,book_t]);
+        // Open half of the book on its flexible tape hinge.
+        color([0.92,0.88,0.74])
+            translate([6,6,-book_t-1]) rotate([0,48,0]) translate([-6,0,0]) paddle();
+        // Top-mounted sensor board, aimed out toward the approaching visitor.
+        translate([55,back_height,3]) mirror([0,0,1]) sensor_mount();
+        color([0.12,0.55,0.66])
+            translate([55+6.5,back_height+6.32,-4.5]) cube([41,25.36,1.6]);
+    }
+    // The eye faces along the cord path: paddle tab -> guide -> winch spool.
+    // Both mounting plates sit fully on the heavy base board.
+    color([0.82,0.24,0.18]) translate([190,90,0]) rotate([0,0,90]) guide();
+    color([0.25,0.29,0.34]) translate([193,46,0]) motor_mount();
+    // Output shaft faces forward; the body ends at y=78 and the spool starts there.
+    color([0.42,0.44,0.47]) translate([220,50,20]) rotate([-90,0,0]) cylinder(h=28,d=motor_d);
+    color([0.86,0.66,0.18]) translate([220,78,20]) rotate([-90,0,0]) spool();
+    // Uno tray with a simple board silhouette; USB edge remains accessible.
+    color([0.30,0.33,0.36]) translate([28,-107,0]) uno_tray();
+    color([0.05,0.40,0.24]) translate([46,-98,5]) cube([68.58,53.34,1.6]);
+    color([0.12,0.12,0.14]) translate([46,-98,6.6]) cube([16,15,7]);
+    color([0.12,0.12,0.14]) translate([109,-92,6.6]) cube([5,16,10]);
+    // Red cord meets the open paddle tab, passes through the eye, and winds
+    // around the spool. The guide stays outside the book's page edge.
+    cord([104,71,156],[170,110,50],1.4);
+    cord([170,110,50],[230,90,20],1.4);
+}
 if(part=="back") back();
 else if(part=="paddle") paddle();
 else if(part=="foot") foot();
@@ -176,4 +234,5 @@ else if(part=="guide") guide();
 else if(part=="motor_mount") motor_mount();
 else if(part=="uno_tray") uno_tray();
 else if(part=="sensor_mount") sensor_mount();
+else if(part=="assembly") assembly();
 else assert(false,"Unknown part");

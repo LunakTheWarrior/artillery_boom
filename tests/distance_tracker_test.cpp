@@ -1,26 +1,21 @@
 #include "src/distance_tracker.h"
 
-#include <cstdlib>
-#include <stdexcept>
+#include <gtest/gtest.h>
 
-void check(bool condition) {
-    if (!condition) throw std::runtime_error("Distance tracking check failed");
-}
-
-int main() {
+TEST(DistanceTrackerTest, SearchesAndTracksWithinTravelBounds) {
     DistanceTracker tracker;
     bool low = false, high = false;
     for (int i = 0; i < 1000; ++i) {
         int before = tracker.position();
         int steps = tracker.observe(std::nullopt);
-        check(tracker.position() == before + steps);
-        check(std::abs(steps) <= DistanceTracker::stride);
-        check(tracker.position() >= 0 && tracker.position() <= DistanceTracker::travel);
+        EXPECT_TRUE(tracker.position() == before + steps);
+        EXPECT_TRUE(std::abs(steps) <= DistanceTracker::stride);
+        EXPECT_TRUE(tracker.position() >= 0 && tracker.position() <= DistanceTracker::travel);
         low |= tracker.position() == 0;
         high |= tracker.position() == DistanceTracker::travel;
-        check(!tracker.tracking());
+        EXPECT_TRUE(!tracker.tracking());
     }
-    check(low && high);
+    EXPECT_TRUE(low && high);
 
     // A near object embedded in a farther background, then moving in either
     // direction. Sample only at the commanded physical position.
@@ -34,35 +29,35 @@ int main() {
                 tracker.observe(offset <= 96 ? 400 : 900);
                 closest = std::min(closest, std::abs(tracker.position() - object));
             }
-            check(tracker.tracking());
-            check(closest <= DistanceTracker::stride);
+            EXPECT_TRUE(tracker.tracking());
+            EXPECT_TRUE(closest <= DistanceTracker::stride);
             object += direction * DistanceTracker::stride;
         }
     }
     // Losing all returns abandons the local scan and resumes searching.
     for (int i = 0; i < 40; ++i) tracker.observe(std::nullopt);
-    check(!tracker.tracking());
+    EXPECT_TRUE(!tracker.tracking());
     tracker.observe(500);
-    check(tracker.tracking());
+    EXPECT_TRUE(tracker.tracking());
     int position = tracker.position();
     tracker.reset();
-    check(!tracker.tracking() && tracker.position() == position);
+    EXPECT_TRUE(!tracker.tracking() && tracker.position() == position);
 
     tracker = DistanceTracker{};
     tracker.observe(1001);
-    check(!tracker.tracking());
+    EXPECT_TRUE(!tracker.tracking());
     tracker.observe(0); // A valid zero is not a sensor failure.
-    check(tracker.tracking());
+    EXPECT_TRUE(tracker.tracking());
     // Tracking scans at both travel limits must remain bounded too.
     for (int end : {0, DistanceTracker::travel}) {
         tracker = DistanceTracker{};
         for (int i = 0; i < 400 && tracker.position() != end; ++i)
             tracker.observe(std::nullopt);
-        check(tracker.position() == end);
+        EXPECT_TRUE(tracker.position() == end);
         for (int i = 0; i < 100; ++i) {
             auto steps = tracker.observe(400);
-            check(std::abs(steps) <= DistanceTracker::stride);
-            check(tracker.position() >= 0 && tracker.position() <= DistanceTracker::travel);
+            EXPECT_TRUE(std::abs(steps) <= DistanceTracker::stride);
+            EXPECT_TRUE(tracker.position() >= 0 && tracker.position() <= DistanceTracker::travel);
         }
     }
 }

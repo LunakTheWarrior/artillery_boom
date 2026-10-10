@@ -10,6 +10,12 @@ filegroup(
     srcs = ["src/stepper_motor.h"],
 )
 
+cc_library(
+    name = "stepper_motor",
+    hdrs = ["src/stepper_motor.h"],
+    strip_include_prefix = "src",
+)
+
 filegroup(
     name = "tracker_sources",
     srcs = ["src/distance_tracker.h"],
@@ -33,13 +39,13 @@ cc_binary(
         "src/music.h",
         "src/pitches.h",
         "src/searcher.h",
-        "src/stepper_motor.h",
     ],
     deps = [
         "@pico-sdk//src/rp2_common/hardware_gpio",
         "@pico-sdk//src/rp2_common/hardware_i2c",
         "@pico-sdk//src/rp2_common/hardware_pwm",
         "@pico-sdk//src/rp2_common/pico_stdlib",
+        ":stepper_motor",
     ],
 )
 
