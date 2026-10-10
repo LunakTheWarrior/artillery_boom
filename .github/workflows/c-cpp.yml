@@ -19,7 +19,7 @@ jobs:
       - name: Install host build utilities
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential git python3 curl xz-utils
+          sudo apt-get install -y build-essential git python3 curl xz-utils openscad
 
       - name: Set up Bazel
         uses: bazel-contrib/setup-bazel@0.15.0
@@ -28,8 +28,8 @@ jobs:
           disk-cache: ${{ github.workflow }}
           repository-cache: true
 
-      - name: Test distance driver on the host
-        run: bazel test //tests:modulino_distance_test --platforms=@platforms//host --lockfile_mode=error --test_output=errors
+      - name: Test firmware logic and drivers on the host
+        run: bazel test //tests/... //team_rocket_buzzer:button_test //book_openener:control_test //book_openener:driver_parity_test --platforms=@platforms//host --lockfile_mode=error --test_output=errors
 
       # Bazel downloads the checksum-pinned Arm GNU Toolchain 15.2.Rel1.
       - name: Build firmware and drivers
@@ -44,4 +44,17 @@ jobs:
             bazel-bin/light_turret.elf
             bazel-bin/light_turret.bin
             bazel-bin/THIRD_PARTY_NOTICES.txt
+          if-no-files-found: error
+
+      - name: Upload book opener firmware and printable parts
+        uses: actions/upload-artifact@v4
+        with:
+          name: book-openener-uno
+          path: |
+            bazel-bin/book_openener/book_openener.hex
+            bazel-bin/book_openener/book_openener.elf
+            bazel-bin/book_openener/book_openener.map
+            bazel-bin/book_openener/book_openener.size.txt
+            bazel-bin/book_openener/THIRD_PARTY_NOTICES.txt
+            bazel-bin/book_openener/enclosure/*.stl
           if-no-files-found: error

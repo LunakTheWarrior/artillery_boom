@@ -5,3 +5,5 @@ exports_files([
     "tinyusb_device_only.patch",
     "usb_reset_alwayslink.patch",
 ])
+
+exports_files(["compile_uno.py", "openscad.sh"])

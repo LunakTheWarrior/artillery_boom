@@ -52,4 +52,16 @@ cc_test(
     target_compatible_with = ["@platforms//os:linux", "@platforms//cpu:x86_64"],
 )
 
-filegroup(name = "enclosure", srcs = glob(["enclosure/*"]))
+[
+    genrule(
+        name = part + "_stl",
+        srcs = ["enclosure/pokedex.scad"],
+        outs = ["stl/" + part + ".stl"],
+        cmd = "$(location //bazel:openscad.sh) -o $@ -D 'part=\"" + part + "\"' $(SRCS)",
+        tools = ["//bazel:openscad.sh"],
+        exec_compatible_with = ["@platforms//os:linux", "@platforms//cpu:x86_64"],
+    )
+    for part in ["base", "face"]
+]
+
+filegroup(name = "enclosure", srcs = [":base_stl", ":face_stl"])

@@ -6,3 +6,6 @@ build
 .tools/
 bazel-*
 /firmware/
+
+# Generated from the OpenSCAD sources (Bazel or manual exports)
+*.stl

@@ -83,15 +83,16 @@ button nut must fit beside the grille and case wall. Leave slack in the button
 wires to remove the faceplate. This is an unprinted prototype; verify fit with
 your hardware before relying on it for the costume.
 
-With OpenSCAD installed, export from the repository root:
+With OpenSCAD installed, generate the printable parts through Bazel:
 
 ```sh
-openscad -o team_rocket_buzzer/enclosure/base.stl -D 'part="base"' team_rocket_buzzer/enclosure/pokedex.scad
-openscad -o team_rocket_buzzer/enclosure/face.stl -D 'part="face"' team_rocket_buzzer/enclosure/pokedex.scad
+bazelisk build //team_rocket_buzzer:enclosure
 ```
 
-Import the separate `base.stl` and `face.stl` files into Bambu Studio at 100%
-scale as separate objects. Older `pokedex.stl` exports are not updated automatically.
+Import `bazel-bin/team_rocket_buzzer/stl/base.stl` and `face.stl` into Bambu
+Studio at 100% scale as separate objects. Commit the SCAD source and Bazel rules;
+generated STL files are ignored by Git. Old manual exports are not updated by
+this command.
 
 Both parts are already oriented for printing: base floor down, face exterior
 down. Use PETG for the flexible clips; PLA clips may break with repeated opening.

@@ -41,3 +41,34 @@ archive_override(
 )
 
 register_toolchains("@pico-sdk//bazel/toolchain:linux-x86_64-rp2350")
+
+# Uno SMD firmware: pinned upstream core and Linux x86_64 AVR toolchain.
+bazel_dep(name = "rules_shell", version = "0.2.0")
+http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+
+http_archive(
+    name = "arduino_avr",
+    urls = ["https://downloads.arduino.cc/cores/staging/avr-1.8.8.tar.bz2"],
+    sha256 = "a234c2a43dcd01ce54be665806f183b8e6ec4e966d2e3e0c3358b63023d6390c",
+    strip_prefix = "ArduinoCore-avr-1.8.8",
+    build_file_content = """
+package(default_visibility = ["//visibility:public"])
+exports_files(["cores/arduino/Arduino.h"])
+filegroup(
+    name = "sources",
+    srcs = glob(["cores/arduino/**", "variants/standard/**", "libraries/Wire/src/**"]),
+)
+""",
+)
+
+http_archive(
+    name = "avr_gcc",
+    urls = ["https://downloads.arduino.cc/tools/avr-gcc-7.3.0-atmel3.6.1-arduino7-x86_64-pc-linux-gnu.tar.bz2"],
+    sha256 = "bd8c37f6952a2130ac9ee32c53f6a660feb79bee8353c8e289eb60fdcefed91e",
+    strip_prefix = "avr",
+    build_file_content = """
+package(default_visibility = ["//visibility:public"])
+exports_files(["bin/avr-g++"])
+filegroup(name = "tools", srcs = glob(["**"]))
+""",
+)

@@ -1,0 +1,93 @@
+load("@rules_cc//cc:cc_test.bzl", "cc_test")
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
+load("@rules_shell//shell:sh_test.bzl", "sh_test")
+
+package(default_visibility = ["//visibility:public"])
+
+FIRMWARE_SOURCES = glob(["firmware/book_openener/*"])
+
+genrule(
+    name = "firmware",
+    srcs = FIRMWARE_SOURCES + ["@arduino_avr//:sources"],
+    outs = [
+        "book_openener.elf",
+        "book_openener.hex",
+        "book_openener.map",
+        "book_openener.size.txt",
+    ],
+    cmd = "python3 $(location //bazel:compile_uno.py)" +
+          " --compiler $(location @avr_gcc//:bin/avr-g++)" +
+          " --core-header $(location @arduino_avr//:cores/arduino/Arduino.h)" +
+          " --sketch $(location firmware/book_openener/book_openener.ino)" +
+          " --out $(@D)",
+    tools = [
+        "//bazel:compile_uno.py",
+        "@arduino_avr//:cores/arduino/Arduino.h",
+        "@avr_gcc//:bin/avr-g++",
+        "@avr_gcc//:tools",
+    ],
+    exec_compatible_with = ["@platforms//os:linux", "@platforms//cpu:x86_64"],
+)
+
+genrule(
+    name = "notices",
+    srcs = [
+        "licenses/STMicroelectronics-BSD-3-Clause.txt",
+        "licenses/Arduino-core-notice.txt",
+    ],
+    outs = ["THIRD_PARTY_NOTICES.txt"],
+    cmd = "cat $(SRCS) > $@",
+)
+
+[
+    genrule(
+        name = part + "_stl",
+        srcs = ["enclosure/book_opener.scad"],
+        outs = ["enclosure/" + part + ".stl"],
+        cmd = "$(location //bazel:openscad.sh) -o $@ -D 'part=\"" + part + "\"' $(SRCS)",
+        tools = ["//bazel:openscad.sh"],
+        exec_compatible_with = ["@platforms//os:linux", "@platforms//cpu:x86_64"],
+    )
+    for part in ["back", "paddle", "foot", "spool", "guide", "motor_mount"]
+]
+
+filegroup(
+    name = "enclosure",
+    srcs = [":" + part + "_stl" for part in ["back", "paddle", "foot", "spool", "guide", "motor_mount"]],
+)
+
+filegroup(
+    name = "book_openener",
+    srcs = [":firmware", ":enclosure", ":notices"],
+)
+
+cc_library(
+    name = "simulated_sketch",
+    srcs = ["firmware/book_openener/ModulinoDistance.cpp"],
+    hdrs = glob(["firmware/book_openener/*.h", "tests/fakes/*.h"]),
+    textual_hdrs = ["firmware/book_openener/book_openener.ino"],
+    includes = ["tests/fakes"],
+    copts = ["-std=c++11", "-Wall", "-Wextra", "-Werror"],
+    target_compatible_with = ["@platforms//os:linux", "@platforms//cpu:x86_64"],
+)
+
+cc_test(
+    name = "control_test",
+    size = "small",
+    srcs = ["tests/test.cpp"],
+    deps = [":simulated_sketch"],
+    copts = ["-std=c++11", "-Wall", "-Wextra", "-Werror", "-UNDEBUG"],
+    target_compatible_with = ["@platforms//os:linux", "@platforms//cpu:x86_64"],
+)
+
+sh_test(
+    name = "driver_parity_test",
+    size = "small",
+    srcs = ["tests/parity.sh"],
+    data = [
+        "tests/check_driver_parity.py",
+        "firmware/book_openener/ModulinoDistance.cpp",
+        "firmware/book_openener/VL53L4CDRegisters.h",
+        "//:distance_driver_sources",
+    ],
+)

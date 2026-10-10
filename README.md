@@ -1,16 +1,17 @@
 # Artillery Boom
 
 C++ firmware for a Raspberry Pi Pico 2 W scanning turret, with stepper motors,
-Modulino sensors, and a buzzer.
+Modulino sensors, and a buzzer. The repository also contains an Arduino Uno SMD
+[book opener](book_openener/README.md), using an AVR port of our distance driver.
 
 ## Build with Bazel
 
 The supported build host is **Linux x86_64**, matching CI and the downloaded ARM
 toolchain. Install Bazelisk (or Bazel 8.1.0) plus a host C/C++ compiler, Git,
-Python 3, and xz. On Ubuntu:
+Python 3, xz, and OpenSCAD (for printable parts). On Ubuntu:
 
 ```sh
-sudo apt-get install build-essential git python3 curl xz-utils
+sudo apt-get install build-essential git python3 curl xz-utils openscad
 bazelisk build //...
 ```
 
@@ -26,7 +27,24 @@ Outputs:
 - `bazel-bin/light_turret.uf2` — copy to the Pico's BOOTSEL volume to flash
 
 `bazelisk build //:light_turret` builds just the firmware and all three formats.
-`bazelisk build //...` also compiles the currently unused light sensor driver.
+`bazelisk build //...` also builds the Uno book opener, its printable STL parts,
+and the currently unused light sensor driver.
+
+Build just the book opener (checksum-pinned AVR compiler/core; no Arduino CLI needed):
+
+```sh
+bazelisk build //book_openener:book_openener
+bazelisk test //book_openener:control_test //book_openener:driver_parity_test \
+  --platforms=@platforms//host --test_output=errors
+```
+
+Its HEX/ELF files are in `bazel-bin/book_openener/`; printable STLs are in
+`bazel-bin/book_openener/enclosure/`. See its guide for wiring and calibration.
+Commit the `.scad` sources and Bazel rules, not generated `.stl` files.
+STL exports are ignored; regenerate them with Bazel or attach them to a release.
+
+The settings below apply to the Pico firmware.
+
 USB serial is enabled and UART serial is disabled. The default is a Release build
 with GNU C11 / GNU C++23. For debugging:
 
